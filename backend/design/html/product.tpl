@@ -1074,7 +1074,10 @@
                     id_input.val("");
                 }
             });
-            new_value.appendTo(".fn_feature_block_"+feature_id).fadeIn('slow');
+            // Під рядком з «+», а не в кінці блоку: у властивості зі сотнею значень
+            // нове поле з'являлось за екраном, і клік виглядав таким, що не спрацював.
+            new_value.insertAfter($(this).closest(".feature_row")).fadeIn('slow');
+            value_input.trigger("focus");
             return false;
         });
 
