@@ -14,6 +14,7 @@ class WishListController extends AbstractController
     public function render()
     {
         $this->design->assign('canonical', Router::generateUrl('wishlist', [], true));
+        $this->design->assign('noindex_follow', true);
         $this->response->setContent('wishlist.tpl');
     }
 

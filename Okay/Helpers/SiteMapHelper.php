@@ -34,9 +34,10 @@ class SiteMapHelper
     const MAX_URLS = 50000;
 
     /**
-     * Сторінки авторизації: рядок у `__pages` вмикає маршрут і тримає мета-теги,
-     * а віддає їх UserController із noindex. У мапі сайту вони перетворюються на
-     * помилку «Submitted URL marked noindex».
+     * Сторінки, які мають рядок у `__pages`, але віддаються з noindex: авторизація
+     * (UserController) і порівняння з обраним — їхній вміст живе в сесії
+     * відвідувача, робот бачить порожню сторінку. У мапі сайту вони
+     * перетворюються на помилку «Submitted URL marked noindex».
      *
      * user/logout сюди не входить: він лише редиректить, сторінки не рендерить
      * і рядка в поставці не має.
@@ -45,6 +46,8 @@ class SiteMapHelper
         'user/login',
         'user/register',
         'user/password_remind',
+        'comparison',
+        'wishlist',
     ];
 
     /**
