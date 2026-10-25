@@ -1087,7 +1087,10 @@
         * */
         function success_action ($this){
             // Назва об'єкта в питанні: «Підтвердити?» не казало, що саме видаляється.
-            var name = $this.closest('.fn_row').find('[class*="okay_list_"][class*="_name"]').first().find('a').first().text().replace(/\s+/g, ' ').trim();
+            // Лише власний текст посилання: у ньому ж лежить мобільний блок із ціною й кількістю.
+            var $nameLink = $this.closest('.fn_row').find('[class*="okay_list_"][class*="_name"]').first().find('a').first();
+            var name = $nameLink.contents().filter(function () { return this.nodeType === 3; }).text().replace(/\s+/g, ' ').trim()
+                || $nameLink.text().replace(/\s+/g, ' ').trim();
             $('#fn_action_modal .heading_modal').text(name
                 ? '{$btr->index_confirm_delete|escape:'javascript'}'.replace('%s', name.length > 60 ? name.slice(0, 57) + '…' : name)
                 : '{$btr->index_confirm|escape:'javascript'}');
@@ -1398,12 +1401,12 @@
         * Блокировка автоформирования ссылки
         * */
         $(document).on("click", ".fn_disable_url", function () {
-            if($(".fn_url").attr("readonly")){
-                $(".fn_url").removeAttr("readonly");
-            } else {
-                $(".fn_url").attr("readonly",true);
+            // У jQuery 4 .attr() повертає значення атрибута як є, а шаблони рендерять readonly="",
+            // тож перевірка через attr бачила поле відкритим і замикала його вдруге.
+            $(".fn_url").prop("readonly", !$(".fn_url").prop("readonly"));
+            if (!$(".fn_url").prop("readonly")) {
+                $(".fn_url").first().trigger("focus");
             }
-            $(this).find('i').toggleClass("fa-unlock");
             $("#block_translit").trigger("click");
         });
         /*Блокировка автоформирования ссылки end*/

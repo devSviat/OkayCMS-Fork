@@ -25,6 +25,20 @@ class SitemapSkipsNoindexPagesTest extends TestCase
         }
     }
 
+    /** Вміст порівняння й обраного — у сесії, робот бачить порожню сторінку. */
+    public function testSessionPagesAreNoindexAndExcluded(): void
+    {
+        $controllers = ['comparison' => 'ComparisonController', 'wishlist' => 'WishListController'];
+        foreach ($controllers as $url => $controller) {
+            $this->assertContains($url, SiteMapHelper::NOINDEX_PAGES);
+
+            $source = file_get_contents(dirname(__DIR__, 2) . "/Okay/Controllers/{$controller}.php");
+            $start = strpos($source, 'function render');
+            $body = substr($source, $start, strpos($source, "\n    }", $start) - $start);
+            $this->assertStringContainsString("'noindex_follow', true", $body, "{$controller}::render() без noindex");
+        }
+    }
+
     /**
      * Перелік мертвіє тихо: видалили маршрут — рядок лишився й нічого не
      * пропускає, а виглядає як робочий захист.

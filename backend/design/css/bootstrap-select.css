@@ -522,6 +522,13 @@ dropdown-menu.bottom-up {
   mask: var(--ok-icon-chevron-right) center / 14px no-repeat;
 }
 
+/* Без flex 14px-іконка стає на базову лінію рядка і сидить на 2–3px вище центру кнопки. */
+.bootstrap-select .caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
 .bootstrap-select .caret:before {
   content: "";
   display: inline-block;

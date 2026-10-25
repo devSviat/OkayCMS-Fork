@@ -107,8 +107,9 @@
     --ok-line: #e4e6e9;
     --ok-line-strong: #c8ccd0;
     /* Межа контрола - не роздільник: WCAG 1.4.11 вимагає для неї 3:1.
-       3.9:1 на білому, 3.4:1 на світлому заголовку списку. */
-    --ok-control-line: #7d8288;
+       Найсвітліший тон, що тримає поріг: 3.26:1 на білому, 3.0:1 на полотні.
+       На заголовку списку дає 2.7:1 - полів там немає, межа не для нього. */
+    --ok-control-line: #8a8f95;
     /* .btn-info та її контурна пара. Свідомо тихіша за --ok-control-line і
        нижча за 3:1 з 1.4.11 - рішення власника, не недогляд. */
     --ok-control-line-soft: #cdd2d5;
@@ -189,6 +190,8 @@
     --ok-icon-chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6l6 -6'/%3E%3C/svg%3E");
     --ok-icon-chevron-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6l6 6'/%3E%3C/svg%3E");
     --ok-icon-chevron-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6l-6 6'/%3E%3C/svg%3E");
+    --ok-icon-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6'/%3E%3Cpath d='M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0'/%3E%3Cpath d='M8 11v-4a4 4 0 1 1 8 0v4'/%3E%3C/svg%3E");
+    --ok-icon-lock-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -6'/%3E%3Cpath d='M11 16a1 1 0 1 0 2 0a1 1 0 1 0 -2 0'/%3E%3Cpath d='M8 11v-5a4 4 0 0 1 8 0'/%3E%3C/svg%3E");
     --ok-icon-close: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6l-12 12'/%3E%3Cpath d='M6 6l12 12'/%3E%3C/svg%3E");
     --ok-icon-circle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0'/%3E%3C/svg%3E");
     --ok-icon-circle-dot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0'/%3E%3Cpath d='M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0' fill='black' stroke='none'/%3E%3C/svg%3E");
@@ -2219,7 +2222,7 @@ opacity: 1;
     opacity: 0.7
 }
 .form-control:disabled,
-.form-control[readonly] {background-color: var(--ok-sunken);opacity: 1;cursor: not-allowed}
+.form-control[readonly] {background-color: var(--ok-canvas);opacity: 1;cursor: not-allowed}
 .date_filter .form-control[readonly] {background-color: transparent;cursor: pointer}
 input[type=search] {
     -webkit-appearance: none
@@ -2522,12 +2525,13 @@ label.switch_label i{
     position: relative;
     display: inline-block;
     vertical-align: top;
+    /* Висота 24px — мінімальна зона натискання з WCAG 2.5.8, нижче не зменшувати. */
     -webkit-box-flex: 0;
-    -webkit-flex: 0 0 55px;
-    -ms-flex: 0 0 55px;
-    flex: 0 0 55px;
-    width: 55px;
-    height: 26px;
+    -webkit-flex: 0 0 44px;
+    -ms-flex: 0 0 44px;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 24px;
     background-color: var(--ok-line-strong);
     cursor: pointer;
     border-radius: 20px;
@@ -2547,8 +2551,11 @@ label.switch_label i{
     font-weight: 600;
     text-transform: uppercase;
     /* «Вимкнено» — звичайний стан, не помилка: червоний у системі означає
-       небезпеку, і на кожному вимкненому перемикачі він переставав щось значити. */
-    background-color: var(--ok-control-line);
+       небезпеку, і на кожному вимкненому перемикачі він переставав щось значити.
+       Суцільна сіра доріжка читалась як друга активна кнопка поруч із зеленою,
+       тож вимкнений стан порожній, а межу контрола (3:1) тримає контур. */
+    background-color: var(--ok-line);
+    box-shadow: inset 0 0 0 1px var(--ok-control-line);
     border: none;
     border-radius: var(--ok-radius-pill);
     -moz-transition: 0.15s ease-out;
@@ -2570,11 +2577,14 @@ label.switch_label i{
 .switch.switch-default .switch-label::before {
     content: '';
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='14.142' height='9.9' viewBox='0 0 14.142 9.9'%3e%3cg id='Group_19593' data-name='Group 19593' transform='translate(-1499.343 -452.515)'%3e%3crect id='Rectangle_11741' data-name='Rectangle 11741' width='2' height='12' transform='translate(1512.071 452.515) rotate(45)' fill='%23b2e0be'/%3e%3crect id='Rectangle_11740' data-name='Rectangle 11740' width='8' height='2' transform='translate(1500.757 455.343) rotate(45)' fill='%23b2e0be'/%3e%3c/g%3e%3c/svg%3e");
-    left: 11px;
+    left: 6px;
+    top: 7.5px;
     color: #B2E0BE;
     opacity: 0;
-    width: 14px;
-    height: 10px;
+    width: 12px;
+    height: 9px;
+    background-size: contain;
+    background-position: center;
 }
 .switch.switch-default .switch-label::after {
     content: '';
@@ -2594,25 +2604,34 @@ label.switch_label i{
 }
 .switch.switch-default .switch-handle {
     position: absolute;
-    top: 2px;
+    /* Ручка заливкою без обведення: біла з обведенням зливалась із контуром
+       доріжки, і відступ зліва здавався різним. Розмір той самий в обох станах. */
+    top: 3px;
     right: initial;
-    left: 2px;
-    width: 22px;
-    height: 22px;
-    background: var(--ok-surface);
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    /* --ok-control-line на доріжці --ok-line дає лише 2.6:1, цей тон — понад 3:1. */
+    background: var(--ok-ink-muted);
     border: none;
     border-radius: 50%;
-    -moz-transition: right 0.15s ease-out;
-    -o-transition: right 0.15s ease-out;
-    -webkit-transition: right 0.15s ease-out;
-    transition: right 0.15s ease-out;
+    -moz-transition: 0.15s ease-out;
+    -o-transition: 0.15s ease-out;
+    -webkit-transition: 0.15s ease-out;
+    transition: 0.15s ease-out;
+    -moz-transition-property: background;
+    -o-transition-property: background;
+    -webkit-transition-property: background;
+    transition-property: background;
 }
 .switch.switch-default .switch-input:checked ~ .switch-label {
     background-color: var(--ok-success);
+    box-shadow: none;
 }
 .switch.switch-default .switch-input:checked ~ .switch-handle {
-    right: 2px;
+    right: 3px;
     left: inherit;
+    background: var(--ok-surface);
 }
 
 
@@ -6761,17 +6780,18 @@ body.menu-pin .menu_switch .menu_hamburger::after {
     border-right: 20px solid var(--ok-success);
 }
 
+/* Гліф ✔ шрифти малюють як емодзі — сірим, а не білим; іконка-маска така сама, як хрестик видалення. */
 .first_image:after{
     display: block;
     width: 15px;
     height: 15px;
-    content: '✔';
-    color: var(--ok-ink-inverse);
+    content: '';
+    background-color: var(--ok-ink-inverse);
+    -webkit-mask: var(--ok-icon-check) center / 15px no-repeat;
+    mask: var(--ok-icon-check) center / 15px no-repeat;
     position: absolute;
-    top: 0;
-    right: 3px;
-    font-size: 17px;
-    line-height: 22px;
+    top: 4px;
+    right: 4px;
 }
 
 .remove_image{
@@ -7675,12 +7695,13 @@ input[type=range]:focus::-ms-fill-upper {
     border-bottom: 1px solid var(--ok-thead-line);
     border-radius: 8px 8px 0 0;
 }
+/* Розмір заголовка картки: питання з назвою об'єкта на 22px займало три рядки. */
 .modal .heading_modal {
     font-family: var(--ok-font);
-    font-weight: 500;
+    font-weight: 600;
     color: var(--ok-ink);
-    font-size: 22px;
-    line-height: 28px;
+    font-size: 18px;
+    line-height: 24px;
     text-align: center;
 }
 /* Підтвердження видалення: «Так» видаляє, тож колір небезпеки носить саме він.
@@ -8005,6 +8026,23 @@ base::-moz-progress-bar,
 
 .fn_delete_social,
 .fn_disable_url{cursor:pointer;}
+/* Шаблони рендерять іконку за наявністю id, а не за станом поля, тож після кліку
+   вона не мінялась. Іконку малює стан самого поля: воно стоїть перед замком. */
+.fn_disable_url svg {display: none;}
+.fn_disable_url::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask: var(--ok-icon-lock-open) center / 16px no-repeat;
+    mask: var(--ok-icon-lock-open) center / 16px no-repeat;
+}
+.fn_url[readonly] ~ .fn_disable_url::before {
+    -webkit-mask-image: var(--ok-icon-lock);
+    mask-image: var(--ok-icon-lock);
+}
+.fn_url:not([readonly]) ~ .fn_disable_url {color: var(--ok-accent);}
 .fn_delete_social svg{width: 14px;height:14px;}
 .fn_delete_social:hover svg{color: var(--ok-danger);}
 div.tox-fullscreen {
@@ -9865,10 +9903,12 @@ button.auth_buttons__recovery:hover {
 /* Форма прав менеджера: «частково» — проміжний стан між нейтральним і зеленим. */
 .perms_form .switch.switch-default .switch-input:indeterminate ~ .switch-label {
     background-color: var(--ok-success-hover);
+    box-shadow: none;
 }
 .perms_form .switch.switch-default .switch-input:indeterminate ~ .switch-handle {
     left: 50%;
     transform: translateX(-50%);
+    box-shadow: none;
 }
 .perms_form .permission_box {
     cursor: pointer;

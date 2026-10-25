@@ -146,7 +146,7 @@ class BackendImportHelper
                 }
 
                 if (!empty($current_url)) {
-                    $product['url'] = $current_url;
+                    $product['url'] = $this->resolveImportProductUrl($current_url, !empty($productId) ? (int)$productId : null);
                 }
                 
                 if (empty($productId)) {
@@ -347,7 +347,35 @@ class BackendImportHelper
         return ExtenderFacade::execute(__METHOD__, $product, func_get_args());
     }
     
-    private function addFeatures($features, $productId, $categoryId)
+    /**
+     * Адмінка не дає зберегти товар з чужим url, а імпорт брав його з CSV як є.
+     * Два товари з одним url роутер віддає як один, і другий стає недоступним.
+     * Наявний товар зайнятий url не отримує й лишається при своєму, новий — з суфіксом.
+     */
+    private function resolveImportProductUrl(string $url, ?int $productId): string
+    {
+        /** @var ProductsEntity $productsEntity */
+        $productsEntity = $this->entityFactory->get(ProductsEntity::class);
+
+        $result = $url;
+        $owner = $productsEntity->get($url);
+        if (!empty($owner) && (int)$owner->id !== $productId) {
+            $current = $productId !== null ? $productsEntity->get($productId) : null;
+            if (!empty($current->url)) {
+                $result = $current->url;
+            } else {
+                $suffix = 2;
+                while ($productsEntity->get($url . '-' . $suffix)) {
+                    $suffix++;
+                }
+                $result = $url . '-' . $suffix;
+            }
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
+    }
+
+        private function addFeatures($features, $productId, $categoryId)
     {
         /** @var FeaturesEntity $featuresEntity */
         $featuresEntity = $this->entityFactory->get(FeaturesEntity::class);
