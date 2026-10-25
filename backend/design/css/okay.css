@@ -190,6 +190,8 @@
     --ok-icon-chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6l6 -6'/%3E%3C/svg%3E");
     --ok-icon-chevron-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6l6 6'/%3E%3C/svg%3E");
     --ok-icon-chevron-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6l-6 6'/%3E%3C/svg%3E");
+    --ok-icon-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6'/%3E%3Cpath d='M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0'/%3E%3Cpath d='M8 11v-4a4 4 0 1 1 8 0v4'/%3E%3C/svg%3E");
+    --ok-icon-lock-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -6'/%3E%3Cpath d='M11 16a1 1 0 1 0 2 0a1 1 0 1 0 -2 0'/%3E%3Cpath d='M8 11v-5a4 4 0 0 1 8 0'/%3E%3C/svg%3E");
     --ok-icon-close: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6l-12 12'/%3E%3Cpath d='M6 6l12 12'/%3E%3C/svg%3E");
     --ok-icon-circle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0'/%3E%3C/svg%3E");
     --ok-icon-circle-dot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0'/%3E%3Cpath d='M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0' fill='black' stroke='none'/%3E%3C/svg%3E");
@@ -2220,7 +2222,7 @@ opacity: 1;
     opacity: 0.7
 }
 .form-control:disabled,
-.form-control[readonly] {background-color: var(--ok-sunken);opacity: 1;cursor: not-allowed}
+.form-control[readonly] {background-color: var(--ok-canvas);opacity: 1;cursor: not-allowed}
 .date_filter .form-control[readonly] {background-color: transparent;cursor: pointer}
 input[type=search] {
     -webkit-appearance: none
@@ -8016,6 +8018,23 @@ base::-moz-progress-bar,
 
 .fn_delete_social,
 .fn_disable_url{cursor:pointer;}
+/* Шаблони рендерять іконку за наявністю id, а не за станом поля, тож після кліку
+   вона не мінялась. Іконку малює стан самого поля: воно стоїть перед замком. */
+.fn_disable_url svg {display: none;}
+.fn_disable_url::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask: var(--ok-icon-lock-open) center / 16px no-repeat;
+    mask: var(--ok-icon-lock-open) center / 16px no-repeat;
+}
+.fn_url[readonly] ~ .fn_disable_url::before {
+    -webkit-mask-image: var(--ok-icon-lock);
+    mask-image: var(--ok-icon-lock);
+}
+.fn_url:not([readonly]) ~ .fn_disable_url {color: var(--ok-accent);}
 .fn_delete_social svg{width: 14px;height:14px;}
 .fn_delete_social:hover svg{color: var(--ok-danger);}
 div.tox-fullscreen {

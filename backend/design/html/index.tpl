@@ -1401,7 +1401,9 @@
             // У jQuery 4 .attr() повертає значення атрибута як є, а шаблони рендерять readonly="",
             // тож перевірка через attr бачила поле відкритим і замикала його вдруге.
             $(".fn_url").prop("readonly", !$(".fn_url").prop("readonly"));
-            $(this).find('i').toggleClass("fa-unlock");
+            if (!$(".fn_url").prop("readonly")) {
+                $(".fn_url").first().trigger("focus");
+            }
             $("#block_translit").trigger("click");
         });
         /*Блокировка автоформирования ссылки end*/
