@@ -26,10 +26,12 @@ class DefaultStrategy extends AbstractRouteStrategy
             $prefix = 'all-posts';
         }
 
+        // Матчинг за patterns не кладе префікс у $url, тож без defaults роут
+        // віддавав порожній url, і hreflang блогу вів на головну.
         return [
             '{$url}',
             ['{$url}' => $prefix],
-            []
+            ['{$url}' => $prefix]
         ];
     }
 }
