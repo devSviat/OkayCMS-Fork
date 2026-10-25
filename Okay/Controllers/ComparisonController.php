@@ -14,6 +14,7 @@ class ComparisonController extends AbstractController
     public function render()
     {
         $this->design->assign('canonical', Router::generateUrl('comparison', [], true));
+        $this->design->assign('noindex_follow', true);
         $this->response->setContent('comparison.tpl');
     }
     
