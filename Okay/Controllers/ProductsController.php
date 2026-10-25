@@ -116,12 +116,16 @@ class ProductsController extends AbstractController
         $relPrevNext = $this->design->fetch('products_rel_prev_next.tpl');
         $this->design->assign('rel_prev_next', $relPrevNext);
 
-        $catalogRobots = $metaRobotsHelper->getCatalogRobots(
-            $currentPage,
-            $productsFilter['other_filter'] ?? [],
-            $metaArray['features_values'] ?? [],
-            $productsFilter['brand_id'] ?? []
-        );
+        if (isset($productsFilter['keyword'])) {
+            $catalogRobots = ROBOTS_NOINDEX_NOFOLLOW;
+        } else {
+            $catalogRobots = $metaRobotsHelper->getCatalogRobots(
+                $currentPage,
+                $productsFilter['other_filter'] ?? [],
+                $metaArray['features_values'] ?? [],
+                $productsFilter['brand_id'] ?? []
+            );
+        }
 
         switch ($catalogRobots) {
             case ROBOTS_NOINDEX_FOLLOW:
@@ -150,11 +154,7 @@ class ProductsController extends AbstractController
 
         if ($canonicalData) {
             $canonical = Router::generateUrl('products', [], true);
-            $chpuUrl = $filterHelper->filterChpuUrl($canonicalData);
-            $chpuUrl = ltrim($chpuUrl, '/');
-            if (!empty($chpuUrl)) {
-                $canonical = rtrim($canonical, '/') . '/' . $chpuUrl;
-            }
+            $canonical = $canonicalHelper->appendFilterUrl($canonical, $filterHelper->filterChpuUrl($canonicalData));
 
             $this->design->assign('canonical', $canonical);
         }
