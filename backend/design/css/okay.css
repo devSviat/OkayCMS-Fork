@@ -6774,17 +6774,18 @@ body.menu-pin .menu_switch .menu_hamburger::after {
     border-right: 20px solid var(--ok-success);
 }
 
+/* Гліф ✔ шрифти малюють як емодзі — сірим, а не білим; іконка-маска така сама, як хрестик видалення. */
 .first_image:after{
     display: block;
     width: 15px;
     height: 15px;
-    content: '✔';
-    color: var(--ok-ink-inverse);
+    content: '';
+    background-color: var(--ok-ink-inverse);
+    -webkit-mask: var(--ok-icon-check) center / 15px no-repeat;
+    mask: var(--ok-icon-check) center / 15px no-repeat;
     position: absolute;
-    top: 0;
-    right: 3px;
-    font-size: 17px;
-    line-height: 22px;
+    top: 4px;
+    right: 4px;
 }
 
 .remove_image{
@@ -7688,12 +7689,13 @@ input[type=range]:focus::-ms-fill-upper {
     border-bottom: 1px solid var(--ok-thead-line);
     border-radius: 8px 8px 0 0;
 }
+/* Розмір заголовка картки: питання з назвою об'єкта на 22px займало три рядки. */
 .modal .heading_modal {
     font-family: var(--ok-font);
-    font-weight: 500;
+    font-weight: 600;
     color: var(--ok-ink);
-    font-size: 22px;
-    line-height: 28px;
+    font-size: 18px;
+    line-height: 24px;
     text-align: center;
 }
 /* Підтвердження видалення: «Так» видаляє, тож колір небезпеки носить саме він.
