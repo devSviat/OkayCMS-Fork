@@ -5,7 +5,6 @@ namespace Okay\Core\Console;
 
 
 use Okay\Core\Console\Commands\Database\DatabaseDeployCommand;
-use Okay\Core\Console\Commands\Features\FeaturesRepairCsvQuotesCommand;
 use Okay\Core\Console\Commands\Manager\ManagerTwoFactorResetCommand;
 use Okay\Core\Console\Commands\Module\ModuleCheckModificationsCommand;
 use Okay\Core\Console\Commands\Module\ModuleCreateCommand;
@@ -28,7 +27,6 @@ class Application extends SymfonyApplication
         ReleaseBuildPackageCommand::class,
         CoreMigrateCommand::class,
         ManagerTwoFactorResetCommand::class,
-        FeaturesRepairCsvQuotesCommand::class,
     ];
 
     public function __construct()
