@@ -1398,11 +1398,9 @@
         * Блокировка автоформирования ссылки
         * */
         $(document).on("click", ".fn_disable_url", function () {
-            if($(".fn_url").attr("readonly")){
-                $(".fn_url").removeAttr("readonly");
-            } else {
-                $(".fn_url").attr("readonly",true);
-            }
+            // У jQuery 4 .attr() повертає значення атрибута як є, а шаблони рендерять readonly="",
+            // тож перевірка через attr бачила поле відкритим і замикала його вдруге.
+            $(".fn_url").prop("readonly", !$(".fn_url").prop("readonly"));
             $(this).find('i').toggleClass("fa-unlock");
             $("#block_translit").trigger("click");
         });
