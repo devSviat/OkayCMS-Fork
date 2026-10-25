@@ -10,7 +10,7 @@ use ReflectionClass;
 
 /**
  * Імпорт брав url з CSV як є: два товари з одним url роутер віддає як один,
- * і другий стає недоступним (так у broken загубились 4524 і 437).
+ * і другий стає недоступним.
  */
 class ImportProductUrlUniqueTest extends TestCase
 {
