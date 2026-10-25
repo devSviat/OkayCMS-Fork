@@ -4,6 +4,7 @@
 namespace Okay\Helpers;
 
 
+use Okay\Core\Modules\Extender\ExtenderFacade;
 use Okay\Core\Settings;
 
 class CanonicalHelper
@@ -60,6 +61,22 @@ class CanonicalHelper
         $this->maxFilterDepth = (int)$maxFilterDepth;
     }
     
+    /**
+     * Дописує до адреси каталогу хвіст із filterChpuUrl().
+     * Хвіст може починатись одразу з `?keyword=`: слеш перед ним дає адресу,
+     * яка 301-редиректить назад, і canonical указував би на редирект.
+     */
+    public function appendFilterUrl(string $baseUrl, string $filterUrl): string
+    {
+        $filterUrl = ltrim($filterUrl, '/');
+        $result = $baseUrl;
+        if ($filterUrl !== '') {
+            $result = rtrim($baseUrl, '/') . (str_starts_with($filterUrl, '?') ? '' : '/') . $filterUrl;
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
+    }
+
     /**
      * @param string|int $page текущая страница, может быть all
      * @param array $otherFilter одномерный массив, содержащий значения ['discounted', 'featured'...]
