@@ -2604,13 +2604,13 @@ label.switch_label i{
 }
 .switch.switch-default .switch-handle {
     position: absolute;
-    /* Вимкнена ручка менша й сіра (як у Material 3): біла з обведенням зливалась
-       із контуром доріжки, і відступ зліва здавався різним. */
-    top: 5px;
+    /* Ручка заливкою без обведення: біла з обведенням зливалась із контуром
+       доріжки, і відступ зліва здавався різним. Розмір той самий в обох станах. */
+    top: 3px;
     right: initial;
-    left: 5px;
-    width: 14px;
-    height: 14px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
     /* --ok-control-line на доріжці --ok-line дає лише 2.6:1, цей тон — понад 3:1. */
     background: var(--ok-ink-muted);
     border: none;
@@ -2619,21 +2619,18 @@ label.switch_label i{
     -o-transition: 0.15s ease-out;
     -webkit-transition: 0.15s ease-out;
     transition: 0.15s ease-out;
-    -moz-transition-property: width, height, top, background;
-    -o-transition-property: width, height, top, background;
-    -webkit-transition-property: width, height, top, background;
-    transition-property: width, height, top, background;
+    -moz-transition-property: background;
+    -o-transition-property: background;
+    -webkit-transition-property: background;
+    transition-property: background;
 }
 .switch.switch-default .switch-input:checked ~ .switch-label {
     background-color: var(--ok-success);
     box-shadow: none;
 }
 .switch.switch-default .switch-input:checked ~ .switch-handle {
-    top: 2px;
-    right: 2px;
+    right: 3px;
     left: inherit;
-    width: 20px;
-    height: 20px;
     background: var(--ok-surface);
 }
 
