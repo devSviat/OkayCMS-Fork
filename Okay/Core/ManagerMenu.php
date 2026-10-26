@@ -537,12 +537,28 @@ class ManagerMenu
 
         $permissionMenu = $this->replaceTranslations($btr, $permissionMenu);
 
-        // Разрешения для модулей добавляем без переводов, в качестве имени идёт Vendor/Module
-        foreach ($this->managers->getModulesPermissions() as $permission=>$vendorModuleName) {
-            $permissionMenu['left_modules'][$permission] = $vendorModuleName;
+        $modulesPermissions = $this->managers->getModulesPermissions();
+        foreach ($modulesPermissions as $permission=>$vendorModuleName) {
+            $title = $vendorModuleName;
+            // Кілька прав одного модуля інакше стають однаковими рядками «Vendor/Module»
+            if (count(array_keys($modulesPermissions, $vendorModuleName, true)) > 1) {
+                $title .= ' — ' . ($this->menuItemTitle($permissionMenu, $permission) ?? $permission);
+            }
+            $permissionMenu['left_modules'][$permission] = $title;
         }
 
         return $this->removeNotPermittedSections($permissionMenu, $manager);
+    }
+
+    private function menuItemTitle(array $translatedPermissionMenu, string $permission): ?string
+    {
+        foreach ($translatedPermissionMenu as $blockName => $items) {
+            if ($blockName !== 'left_modules' && !empty($items[$permission])) {
+                return (string)$items[$permission];
+            }
+        }
+
+        return null;
     }
 
     private function removeNotPermittedSections($permissionMenu, $manager)
