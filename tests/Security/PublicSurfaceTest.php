@@ -156,6 +156,35 @@ class PublicSurfaceTest extends TestCase
         );
     }
 
+    /**
+     * Маршрути модулів зі slug `backend/…` веде фронт-роутер. У backend/index.php
+     * їхній POST без session_id отримував би 403, і кнопки модулів не працювали б.
+     */
+    #[DataProvider('nginxConfigProvider')]
+    public function testModuleRoutesUnderBackendReachTheFrontRouter(string $path): void
+    {
+        $config = $this->config($path);
+
+        $this->assertMatchesRegularExpression(
+            '#location\s+=\s+/backend/\s*\{\s*rewrite\s+\^\s+/backend/index\.php\s+last#',
+            $config,
+            "{$path}: /backend/ лишається входом в адмінку"
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '#try_files\s+/does_not_exist\s+/backend/index\.php#',
+            $config,
+            "{$path}: невідомі шляхи під /backend/ не йдуть в адмінський вхід"
+        );
+    }
+
+    public static function nginxConfigProvider(): array
+    {
+        return [
+            'dev template' => ['dev/config/nginx/templates/default.conf.template'],
+            'docs example' => ['docs/nginx/nginx.conf'],
+        ];
+    }
+
     /** Приклад із docs/ копіюють на власний хостинг — він не має відставати. */
     #[DataProvider('allowedTreeProvider')]
     public function testDocsExampleAllowsTheSameTreesAsTheDevTemplate(string $tree): void
