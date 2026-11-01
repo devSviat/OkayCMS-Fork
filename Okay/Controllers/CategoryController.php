@@ -4,7 +4,6 @@ namespace Okay\Controllers;
 
 use Okay\Core\Router;
 use Okay\Core\Routes\RouteFactory;
-use Okay\Entities\BrandsEntity;
 use Okay\Entities\ProductsEntity;
 use Okay\Entities\CategoriesEntity;
 use Okay\Helpers\CanonicalHelper;
@@ -18,7 +17,6 @@ use Okay\Helpers\ProductsHelper;
 class CategoryController extends AbstractController
 {
     public function render(
-        BrandsEntity           $brandsEntity,
         CategoriesEntity       $categoriesEntity,
         CatalogHelper          $catalogHelper,
         ProductsHelper         $productsHelper,
@@ -82,7 +80,7 @@ class CategoryController extends AbstractController
         $this->design->assign('category', $category);
         $this->design->assign('sort', $productsSort);
 
-        $catalogBrands = $brandsEntity->mappedBy('id')->find([
+        $catalogBrands = $filterHelper->getBrands([
             'category_id' => $category->children,
             'visible' => 1,
             'product_visible' => 1,
