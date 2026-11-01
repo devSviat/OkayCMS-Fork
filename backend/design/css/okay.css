@@ -2083,9 +2083,10 @@ opacity: 1;
 .fn_input_file .input_file_trigger {
     display: inline-flex;
     align-items: center;
-    padding: 4px 16px;
-    background: var(--ok-accent);
-    color: rgb(255, 255, 255);
+    padding: 3px 15px;
+    background: transparent;
+    color: var(--ok-accent);
+    border: 1px solid var(--ok-accent);
     font-size: 14px;
     transition: all .4s;
     cursor: pointer;
@@ -2105,12 +2106,13 @@ opacity: 1;
     padding: 14px 0;
     cursor: pointer;
 }
+/* Заливка лише для клавіатурного фокусу: після кліку мишею кнопка лишається контурною й не схожа на основну. */
 .fn_input_file .input_file:hover + .input_file_trigger,
-.fn_input_file .input_file:focus + .input_file_trigger,
+.fn_input_file .input_file:focus-visible + .input_file_trigger,
 .fn_input_file .input_file_trigger:hover,
-.fn_input_file .input_file_trigger:focus {
-    background: #34495E;
-    color: #40d8e9;
+.fn_input_file .input_file_trigger:focus-visible {
+    background: var(--ok-accent);
+    color: var(--ok-ink-inverse);
 }
 
 .input_file_return {
