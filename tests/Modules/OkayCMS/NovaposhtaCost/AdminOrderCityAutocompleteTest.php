@@ -38,7 +38,7 @@ class AdminOrderCityAutocompleteTest extends TestCase
             'місто адреси мусить шукатись серед населених пунктів (find_city_for_door)'
         );
         $this->assertMatchesRegularExpression(
-            "~\\$\\('\\.fn_np_warehouse_city'\\)\\.devbridgeAutocomplete\\(\\{\\s*serviceUrl: okay\\.router\\['OkayCMS_NovaposhtaCost_find_city'\\]~",
+            "~npWarehouseCityInput\\.devbridgeAutocomplete\\(\\{\\s*serviceUrl: okay\\.router\\['OkayCMS_NovaposhtaCost_find_city'\\]~",
             $source
         );
         $this->assertDoesNotMatchRegularExpression(
@@ -56,11 +56,46 @@ class AdminOrderCityAutocompleteTest extends TestCase
         $this->assertMatchesRegularExpression('~class="[^"]*\bfn_np_warehouse_city\b[^"]*"[^\n]*\|newpost_city~', $source);
     }
 
-    /** Змінене вручну місто без вибору підказки не має Ref — старі назва, область і вулиця йдуть геть. */
-    public function testEditingDoorCityClearsDependentFields(): void
+    /**
+     * Змінене вручну місто без вибору підказки не має Ref; повернення до вибраного
+     * тексту відновлює місто. Вулицю ручне редагування міста не стирає — лише вибір іншого.
+     */
+    public function testEditingDoorCityClearsOrRestoresCity(): void
+    {
+        $source = $this->source();
+
+        $this->assertMatchesRegularExpression(
+            "~npDoorCityInput\\.on\\('input'.*?=== npDoorCity\\.label.*?npDoorCityRef = npDoorCity\\.ref.*?else \\{\\s*npDoorCityRef = '';\\s*npDoorCityFields\\.val\\(''\\)~s",
+            $source
+        );
+        $this->assertMatchesRegularExpression(
+            '~if \\(cityRef !== npDoorCity\\.ref\\) \\{\\s*npClearDoorStreet\\(\\);~',
+            $source,
+            'стару вулицю треба скидати лише при виборі іншого міста'
+        );
+    }
+
+    /** Спільне novaposhta_city_id несе Ref того блоку, який зараз активний. */
+    public function testActiveBlockOwnsTheCityRef(): void
+    {
+        $source = $this->source();
+
+        $this->assertStringContainsString("npCityId.val(isDoor ? npDoorCityRef : npWarehouseCityRef);", $source);
+        $this->assertMatchesRegularExpression(
+            '~doorsDeliveries\.map\(String\)\.includes\(String\(deliveryId\)\)\) \{[^}]*npUseCityRef\(true\);~',
+            $source
+        );
+        $this->assertMatchesRegularExpression(
+            '~warehousesDeliveries\.map\(String\)\.includes\(String\(deliveryId\)\)\) \{[^}]*npUseCityRef\(false\);~',
+            $source
+        );
+    }
+
+    /** Місто, змінене без вибору підказки, не зберігається. */
+    public function testEditedCityWithoutSuggestionBlocksSubmit(): void
     {
         $this->assertMatchesRegularExpression(
-            "~npDoorCityInput\\.on\\('input'.*?npCityId\\.val\\(''\\).*?novaposhta_city_name.*?novaposhta_area_name.*?novaposhta_region_name.*?npClearDoorStreet\\(\\)~s",
+            "~npDoorCityInput\\.closest\\('form'\\)\\.on\\('submit'.*?if \\(!npDoorCityEdited \\|\\| !npDoorCityInput\\.is\\(':visible'\\)\\).*?e\\.preventDefault\\(\\)~s",
             $this->source()
         );
     }
