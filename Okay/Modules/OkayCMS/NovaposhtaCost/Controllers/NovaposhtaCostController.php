@@ -12,7 +12,9 @@ use Okay\Core\Settings;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Entities\DeliveriesEntity;
 use Okay\Entities\OrdersEntity;
+use Okay\Helpers\DeliveryQuoteHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPCalcHelper;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuote;
 use Okay\Modules\OkayCMS\NovaposhtaCost\VO\NPCalcVO;
 use Psr\Log\LoggerInterface;
 
@@ -27,7 +29,8 @@ class NovaposhtaCostController extends AbstractController
         LoggerInterface $logger,
         BackendOrdersHelper $backendOrdersHelper,
         Settings $settings,
-        NPCalcHelper $calcHelper
+        NPCalcHelper $calcHelper,
+        DeliveryQuoteHelper $deliveryQuoteHelper
     ) {
         $this->design->assignJsVar('np_delivery_module_id', 1);
         $cityRef = $this->request->get('city');
@@ -85,6 +88,14 @@ class NovaposhtaCostController extends AbstractController
                 $result['price_response']['success'] = true;
                 // Переводим цену в валюту по умолчанию для сайта
                 $result['price_response']['price'] = (float)$money->convert($deliveryPrice, $npCurrency->id, false, true);
+                if (!$orderId) {
+                    $deliveryQuoteHelper->remember(
+                        NPDeliveryQuote::scope((int)$deliveryId),
+                        NPDeliveryQuote::context($cityRef, $redelivery),
+                        $cart->get(),
+                        $result['price_response']['price']
+                    );
+                }
 
                 // Изменим стоимость доставки, на ту, что просчитала Новая почта
                 $result['price_response']['cart_total_price'] = $cart->get()->total_price;
