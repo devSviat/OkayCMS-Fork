@@ -4,6 +4,7 @@
 namespace Okay\Modules\OkayCMS\NovaposhtaCost\Extenders;
 
 
+use Okay\Core\Cart;
 use Okay\Core\Design;
 use Okay\Core\EntityFactory;
 use Okay\Core\FrontTranslations;
@@ -17,7 +18,10 @@ use Okay\Entities\OrdersEntity;
 use Okay\Entities\PaymentsEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCitiesEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
+use Okay\Helpers\DeliveryQuoteHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryDataHelper;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuote;
+use Psr\Log\LoggerInterface;
 
 class FrontExtender implements ExtensionInterface
 {
@@ -32,7 +36,11 @@ class FrontExtender implements ExtensionInterface
         EntityFactory     $entityFactory,
         FrontTranslations $frontTranslations,
         Design            $design,
-        NPDeliveryDataHelper $deliveryDataHelper
+        NPDeliveryDataHelper $deliveryDataHelper,
+        private Cart $cart,
+        private Module $module,
+        private DeliveryQuoteHelper $deliveryQuoteHelper,
+        private LoggerInterface $logger
     ) {
         $this->request           = $request;
         $this->entityFactory     = $entityFactory;
@@ -152,12 +160,28 @@ class FrontExtender implements ExtensionInterface
      */
     public function setCartDeliveryPrice($result, $delivery, $order)
     {
+        // Ціну беремо лише з розрахунку сервера (ajax/np/calc) для цього кошика й
+        // цього міста. Поле novaposhta_delivery_price з форми покупець може змінити
+        // на будь-яке значення, зокрема від'ємне, тому воно не читається.
         if (
-            $this->request->post('is_novaposhta_delivery', 'boolean') &&
+            (int)$delivery->module_id === (int)$this->module->getModuleIdByNamespace(__CLASS__) &&
             $delivery->paid &&
             $delivery->free_from > $order->total_price
         ) {
-            $result['delivery_price'] = $this->request->post('novaposhta_delivery_price');
+            $price = $this->deliveryQuoteHelper->find(
+                NPDeliveryQuote::scope((int)$delivery->id),
+                NPDeliveryQuote::context(
+                    $this->request->post('novaposhta_delivery_city_id'),
+                    $this->request->post('novaposhta_redelivery', 'boolean')
+                ),
+                $this->cart->get()
+            );
+
+            if ($price !== null) {
+                $result['delivery_price'] = $price;
+            } else {
+                $this->logger->warning('Novaposhta cost: no server-side price for order #' . $order->id . ', delivery price from settings is used');
+            }
         }
 
         return ExtenderFacade::execute(__METHOD__, $result, func_get_args());

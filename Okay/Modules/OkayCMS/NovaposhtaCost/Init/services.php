@@ -8,7 +8,9 @@ use Okay\Core\Design;
 use Okay\Core\EntityFactory;
 use Okay\Core\FrontTranslations;
 use Okay\Core\Languages;
+use Okay\Core\Cart;
 use Okay\Core\Modules\Module;
+use Okay\Helpers\DeliveryQuoteHelper;
 use Okay\Core\Money;
 use Okay\Core\OkayContainer\Reference\ParameterReference as PR;
 use Okay\Core\OkayContainer\Reference\ServiceReference as SR;
@@ -33,6 +35,10 @@ return [
             new SR(FrontTranslations::class),
             new SR(Design::class),
             new SR(NPDeliveryDataHelper::class),
+            new SR(Cart::class),
+            new SR(Module::class),
+            new SR(DeliveryQuoteHelper::class),
+            new SR(LoggerInterface::class),
         ],
     ],
     BackendExtender::class => [
