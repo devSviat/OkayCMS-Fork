@@ -28,6 +28,7 @@
 {literal}
     <script src="design/js/highcharts/highcharts.js" type="text/javascript"></script>
     <script src="design/js/highcharts/modules/exporting.js" type="text/javascript"></script>
+    <script src="design/js/highcharts/modules/offline-exporting.js" type="text/javascript"></script>
 
 <script>
     var chart;
@@ -45,7 +46,16 @@
                         }
                     }
                 },
-                fallbackToExportServer: false
+                // Дефолти Highcharts шлють графік продажів на export.highcharts.com
+                // і тягнуть скрипти з code.highcharts.com. PDF потребує jspdf/svg2pdf,
+                // яких в адмінці немає.
+                fallbackToExportServer: false,
+                libURL: 'design/js/highcharts/lib/',
+                buttons: {
+                    contextButton: {
+                        menuItems: ['viewFullscreen', 'printChart', 'separator', 'downloadPNG', 'downloadJPEG', 'downloadSVG']
+                    }
+                }
             },
             chart: {
                 zoomType: 'x',

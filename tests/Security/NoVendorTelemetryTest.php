@@ -59,6 +59,18 @@ class NoVendorTelemetryTest extends TestCase
         $this->assertFileDoesNotExist(self::root() . '/Okay/Controllers/SupportController.php');
     }
 
+    /** exporting.js без offline-модуля віддає графік продажів на export.highcharts.com. */
+    public function testSalesChartExportStaysInTheBrowser(): void
+    {
+        $template = (string) file_get_contents(self::root() . '/backend/design/html/stats.tpl');
+
+        $this->assertStringContainsString('highcharts/modules/offline-exporting.js', $template);
+        $this->assertFileExists(self::root() . '/backend/design/js/highcharts/modules/offline-exporting.js');
+        $this->assertStringContainsString('fallbackToExportServer: false', $template);
+        $this->assertMatchesRegularExpression("~libURL:\s*'design/~", $template);
+        $this->assertStringNotContainsString("'downloadPDF'", $template);
+    }
+
     /** @return iterable<string, string> */
     private function files(): iterable
     {
