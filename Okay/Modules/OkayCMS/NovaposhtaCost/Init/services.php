@@ -23,6 +23,7 @@ use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPApiHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPCacheHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPCalcHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryDataHelper;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPAdminIdentity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuoteHelper;
 use Psr\Log\LoggerInterface;
 
@@ -97,5 +98,8 @@ return [
     ],
     NPDeliveryQuoteHelper::class => [
         'class' => NPDeliveryQuoteHelper::class,
+    ],
+    NPAdminIdentity::class => [
+        'class' => NPAdminIdentity::class,
     ],
 ];
