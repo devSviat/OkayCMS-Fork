@@ -54,7 +54,6 @@ use Okay\Helpers\ComparisonHelper;
 use Okay\Helpers\CouponHelper;
 use Okay\Helpers\CommentsHelper;
 use Okay\Helpers\DeliveriesHelper;
-use Okay\Helpers\DeliveryQuoteHelper;
 use Okay\Helpers\DiscountsHelper;
 use Okay\Helpers\MainHelper;
 use Okay\Helpers\MetadataHelpers\AllBrandsMetadataHelper;
@@ -391,9 +390,6 @@ return [
             new SR(FrontTemplateConfig::class),
             new SR(LoggerInterface::class),
         ]
-    ],
-    DeliveryQuoteHelper::class => [
-        'class' => DeliveryQuoteHelper::class,
     ],
     DeliveriesHelper::class => [
         'class' => DeliveriesHelper::class,

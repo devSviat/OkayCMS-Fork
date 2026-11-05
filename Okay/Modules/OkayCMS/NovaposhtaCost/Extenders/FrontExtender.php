@@ -18,9 +18,9 @@ use Okay\Entities\OrdersEntity;
 use Okay\Entities\PaymentsEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCitiesEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
-use Okay\Helpers\DeliveryQuoteHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryDataHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuote;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuoteHelper;
 use Psr\Log\LoggerInterface;
 
 class FrontExtender implements ExtensionInterface
@@ -39,7 +39,7 @@ class FrontExtender implements ExtensionInterface
         NPDeliveryDataHelper $deliveryDataHelper,
         private Cart $cart,
         private Module $module,
-        private DeliveryQuoteHelper $deliveryQuoteHelper,
+        private NPDeliveryQuoteHelper $deliveryQuoteHelper,
         private LoggerInterface $logger
     ) {
         $this->request           = $request;
@@ -160,9 +160,8 @@ class FrontExtender implements ExtensionInterface
      */
     public function setCartDeliveryPrice($result, $delivery, $order)
     {
-        // Ціну беремо лише з розрахунку сервера (ajax/np/calc) для цього кошика й
-        // цього міста. Поле novaposhta_delivery_price з форми покупець може змінити
-        // на будь-яке значення, зокрема від'ємне, тому воно не читається.
+        // Ціна — лише з розрахунку сервера (ajax/np/calc) для цього кошика й міста,
+        // і лише для способів доставки цього модуля.
         if (
             (int)$delivery->module_id === (int)$this->module->getModuleIdByNamespace(__CLASS__) &&
             $delivery->paid &&

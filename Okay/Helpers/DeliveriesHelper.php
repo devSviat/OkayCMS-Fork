@@ -60,7 +60,34 @@ class DeliveriesHelper
             ];
         }
 
-        return ExtenderFacade::execute(__METHOD__, $deliveryPriceInfo, func_get_args());
+        $extended = ExtenderFacade::execute(__METHOD__, $deliveryPriceInfo, func_get_args());
+
+        return $this->guardDeliveryPrice($extended, $deliveryPriceInfo, $delivery, $order);
+    }
+
+    /**
+     * Страховка після модулів: від'ємна чи нечислова ціна доставки зменшила б суму
+     * замовлення, тому замість неї лишається ціна способу доставки з адмінки.
+     */
+    private function guardDeliveryPrice($extended, array $default, $delivery, $order)
+    {
+        if (!is_array($extended) || !array_key_exists('delivery_price', $extended)) {
+            return $extended;
+        }
+
+        $price = $extended['delivery_price'];
+        if (is_numeric($price) && is_finite((float)$price) && (float)$price >= 0) {
+            return $extended;
+        }
+
+        $this->logger->warning(sprintf(
+            'Delivery #%d: a module returned an invalid delivery price for order #%d, the price from delivery settings is used',
+            (int)($delivery->id ?? 0),
+            (int)($order->id ?? 0)
+        ));
+        $extended['delivery_price'] = $default['delivery_price'];
+
+        return $extended;
     }
 
     /**

@@ -1,23 +1,22 @@
 <?php
 
-namespace Helpers;
+namespace Modules\OkayCMS\NovaposhtaCost;
 
-use Okay\Helpers\DeliveryQuoteHelper;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuoteHelper;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Ціна доставки при оформленні береться лише з розрахунку сервера для того самого
- * кошика й тих самих параметрів. До цього модулі доставки брали її з прихованого
- * поля форми, і покупець оформлював товар за 1799 грн на 299 грн, підставивши −1500.
+ * кошика й тих самих параметрів.
  */
-class DeliveryQuoteHelperTest extends TestCase
+class NPDeliveryQuoteHelperTest extends TestCase
 {
-    private DeliveryQuoteHelper $quotes;
+    private NPDeliveryQuoteHelper $quotes;
 
     protected function setUp(): void
     {
         $_SESSION = [];
-        $this->quotes = new DeliveryQuoteHelper();
+        $this->quotes = new NPDeliveryQuoteHelper();
     }
 
     public function testSameCartAndContextReturnsRememberedPrice(): void
@@ -59,7 +58,7 @@ class DeliveryQuoteHelperTest extends TestCase
     public function testTamperedSessionKeyIsRejected(): void
     {
         $this->quotes->remember('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799), 95.0);
-        $_SESSION['delivery_quotes']['novaposhta:3']['key'] = 'x';
+        $_SESSION['novaposhta_delivery_quotes']['novaposhta:3']['key'] = 'x';
 
         $this->assertNull($this->quotes->find('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799)));
     }
