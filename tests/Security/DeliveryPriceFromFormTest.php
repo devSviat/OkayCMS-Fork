@@ -6,11 +6,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Модулі доставки ставили ціну доставки замовлення з прихованого поля форми
- * кошика (novaposhta_delivery_price, meest_delivery_price, ukrposhta_delivery_price).
- * Покупець змінював його в браузері: товар за 1799 грн оформлювався на 299 грн
- * з доставкою −1500, і для будь-якого платного способу, не лише свого.
- * Ціна береться тільки з розрахунку сервера (Okay\Helpers\DeliveryQuoteHelper).
+ * Ціна доставки замовлення береться тільки з розрахунку сервера, не з полів форми
+ * кошика, і модуль ставить її лише для своїх способів доставки
+ * (docs/modules/delivery-price.md).
  */
 class DeliveryPriceFromFormTest extends TestCase
 {
@@ -30,7 +28,7 @@ class DeliveryPriceFromFormTest extends TestCase
             }
         }
 
-        $this->assertSame([], $offenders, 'ціна доставки з POST — покупець підставить будь-яку');
+        $this->assertSame([], $offenders, 'ціна доставки не має братися з POST');
     }
 
     /** @return iterable<string, array{string}> */
@@ -40,8 +38,8 @@ class DeliveryPriceFromFormTest extends TestCase
     }
 
     /**
-     * Ціна ставиться лише для способу доставки цього модуля: раніше умовою було
-     * POST-поле is_*_delivery, і чужий спосіб отримував ціну з форми.
+     * Ціна ставиться лише для способу доставки цього модуля, а не за прапорцем
+     * із форми.
      */
     #[DataProvider('extenders')]
     public function testPriceIsAppliedOnlyToOwnDeliveryMethod(string $path): void
@@ -52,6 +50,23 @@ class DeliveryPriceFromFormTest extends TestCase
         $this->assertStringContainsString('getModuleIdByNamespace', $method);
         $this->assertStringContainsString('deliveryQuoteHelper->find(', $method);
         $this->assertDoesNotMatchRegularExpression('~is_[a-z]+_delivery~', $method);
+    }
+
+    /**
+     * Без серверного розрахунку модуль ціну доставки не змінює — лишається ціна з
+     * адмінки. Meest і Ukrposhta є лише в broken, тож перевіряються ті, що є.
+     */
+    public function testModulesWithoutServerPriceKeepDeliverySettings(): void
+    {
+        $paths = array_filter([
+            'Okay/Modules/Sviat/Meest/Extenders/FrontExtender.php',
+            'Okay/Modules/Sviat/Ukrposhta/Extenders/FrontExtender.php',
+        ], fn(string $path): bool => is_file(dirname(__DIR__, 2) . '/' . $path));
+
+        foreach ($paths as $path) {
+            $this->assertStringNotContainsString("['delivery_price']", $this->method($path, 'setCartDeliveryPrice'), $path);
+        }
+        $this->addToAssertionCount(1);
     }
 
     private function method(string $path, string $name): string

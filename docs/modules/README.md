@@ -37,6 +37,7 @@
 | Додати фільтр до чужої сутності | [init-reference.md](init-reference.md#registerentityfilter) |
 | Запустити періодичну задачу | [init-reference.md](init-reference.md#registerschedule) |
 | Написати модуль оплати чи доставки | [structure.md](structure.md#settingsxml--налаштування-оплати-й-доставки) |
+| Ставити ціну доставки в модулі доставки | [delivery-price.md](delivery-price.md) |
 
 ## Модулі в цьому репозиторії
 

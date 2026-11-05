@@ -4,7 +4,7 @@ namespace Okay\Modules\OkayCMS\NovaposhtaCost\Helpers;
 
 /**
  * Параметри, від яких залежить ціна Нової Пошти, — однаково для розрахунку
- * (ajax/np/calc) і для оформлення замовлення, щоб DeliveryQuoteHelper знайшов
+ * (ajax/np/calc) і для оформлення замовлення, щоб NPDeliveryQuoteHelper знайшов
  * розраховану ціну лише за тих самих умов.
  */
 final class NPDeliveryQuote
