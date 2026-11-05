@@ -418,10 +418,21 @@
                     importItem.progressItem.attr('value', Math.round(100 * page / (data.pagesNum + 1)));
                     Piecon.setProgress(Math.round(100 * page / (data.pagesNum + 1)));
                     doUpdate(++page, importItem, isLast, signal);
-                } else {
+                } else if (data.hasOwnProperty('pagesNum') && data.pagesNum > 0) {
                     importItem.progressItem.attr('value', Math.round(100 * page / (data.pagesNum + 1)));
                     Piecon.setProgress(Math.round(100 * page / (data.pagesNum + 1)));
                     finalUpdate(importItem, isLast)
+                } else {
+                    // pagesNum 0 — НП не повернула totalCount, тож пройдено лише першу
+                    // сторінку. finalImport видалив би решту типу; cron тут теж не чистить
+                    // (NPCacheHelper::isUpdateComplete).
+                    Piecon.setProgress(100);
+                    importItem.progressItem.attr('value', 100).hide();
+                    importItem.progressBlock.find('.np_import_result').fadeIn(500);
+                    if (isLast) {
+                        $('.fn_update_cache').text('{/literal}{$btr->np_update_cache_finished|escape}{literal}');
+                    }
+                    importItem.resolve('result');
                 }
             },
             error: function(xhr, status, errorThrown) {
