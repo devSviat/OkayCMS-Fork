@@ -6,9 +6,6 @@ class ModuleParamsDTO
 {
     private string $version = '1.0.0';
     private string $okayVersion = '';
-    private int $daysToExpire = -1;
-    private bool $accessExpired = false;
-    private string $addToCartUrl = '';
     private int $mathVersion;
     private string $vendorEmail = '';
     private string $vendorSite = '';
@@ -16,8 +13,6 @@ class ModuleParamsDTO
     private array $frontModifications = [];
     /** @var ModificationDTO[] */
     private array $backendModifications = [];
-    private bool $isOfficial = false;
-    private bool $isLicensed = false;
 
     /**
      * @param array $params
@@ -58,54 +53,6 @@ class ModuleParamsDTO
     public function setVersion(string $version): void
     {
         $this->version = $version;
-    }
-
-    /**
-     * @return int
-     */
-    public function getDaysToExpire(): int
-    {
-        return $this->daysToExpire;
-    }
-
-    /**
-     * @param int $daysToExpire
-     */
-    public function setDaysToExpire(int $daysToExpire): void
-    {
-        $this->daysToExpire = $daysToExpire;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isAccessExpired(): bool
-    {
-        return $this->accessExpired;
-    }
-
-    /**
-     * @param bool $accessExpired
-     */
-    public function setAccessExpired(bool $accessExpired): void
-    {
-        $this->accessExpired = $accessExpired;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAddToCartUrl(): string
-    {
-        return $this->addToCartUrl;
-    }
-
-    /**
-     * @param string $addToCartUrl
-     */
-    public function setAddToCartUrl(string $addToCartUrl): void
-    {
-        $this->addToCartUrl = $addToCartUrl;
     }
 
     /**
@@ -202,37 +149,5 @@ class ModuleParamsDTO
     public function setOkayVersion(string $okayVersion): void
     {
         $this->okayVersion = $okayVersion;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isOfficial(): bool
-    {
-        return $this->isOfficial;
-    }
-
-    /**
-     * @param bool $isOfficial
-     */
-    public function setIsOfficial(bool $isOfficial): void
-    {
-        $this->isOfficial = $isOfficial;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isLicensed(): bool
-    {
-        return $this->isLicensed;
-    }
-
-    /**
-     * @param bool $isLicensed
-     */
-    public function setIsLicensed(bool $isLicensed): void
-    {
-        $this->isLicensed = $isLicensed;
     }
 }

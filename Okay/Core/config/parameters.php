@@ -128,8 +128,4 @@ return [
         'test_internal_email' => $_ENV['TEST_INTERNAL_EMAIL'] ?? '',
     ],
     'production_domain' => $_ENV['PRODUCTION_DOMAIN'] ?? '',
-    'license' => [
-        'compile_code_dir' => 'cache/codes/',
-        'email' => '{%email_for_module%}',
-    ]
 ];

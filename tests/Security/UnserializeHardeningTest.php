@@ -42,17 +42,6 @@ class UnserializeHardeningTest extends TestCase
         $this->assertSame([], array_values(array_unique($offenders)));
     }
 
-    public function testLicenseStorageAllowsOnlyItsOwnDto()
-    {
-        $source = file_get_contents(
-            dirname(__DIR__, 2) . '/Okay/Core/Modules/LicenseStorage.php'
-        );
-        $this->assertIsString($source);
-
-        // Тут об'єкт потрібен по суті, тому список класів, а не false
-        $this->assertStringContainsString("'allowed_classes' => [LicenseDTO::class]", $source);
-    }
-
     public function testIntegration1cResolvesFilenamesThroughThePathResolver()
     {
         $source = file_get_contents(

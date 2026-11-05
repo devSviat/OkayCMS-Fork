@@ -4,7 +4,6 @@
 namespace Okay\Admin\Controllers;
 
 
-use Okay\Core\Modules\LicenseModulesTemplates;
 use Okay\Entities\ManagersEntity;
 use Okay\Core\Security\SafeFileName;
 
@@ -15,12 +14,9 @@ class ThemeAdmin extends IndexAdmin
     private $compiled_dir = 'compiled/';
 
     /*Работа с шаблонами сайта*/
-    public function fetch(
-        ManagersEntity $managersEntity,
-        LicenseModulesTemplates $licenseModulesTemplates
-    ) {
+    public function fetch(ManagersEntity $managersEntity)
+    {
         if ($this->request->method('post')) {
-            $licenseModulesTemplates->clearRequestRetry();
             if (isset($_POST['admin_theme']) && $_POST['admin_theme'] != $this->settings->get('theme')) {
                 $this->settings->set('admin_theme', $this->request->post('admin_theme'));
             }
@@ -48,7 +44,6 @@ class ThemeAdmin extends IndexAdmin
                             $this->settings->set('admin_theme', $new_name);
                         }
                         if ($this->settings->get('theme') == $old_name) {
-                            $licenseModulesTemplates->updateLicenseInfo();
                             $this->settings->set('theme', $new_name);
                         }
                     }
@@ -72,8 +67,6 @@ class ThemeAdmin extends IndexAdmin
                         $this->settings->set('admin_theme', '');
                     }
                     $this->settings->set('theme', $action_theme);
-                        $licenseModulesTemplates->setThemeName($action_theme);
-                        $licenseModulesTemplates->updateLicenseInfo();
                     break;
                 }
                 case 'clone_theme': {
@@ -96,8 +89,6 @@ class ThemeAdmin extends IndexAdmin
 
                     @unlink($this->themes_dir.$new_name.'/locked');
                     $this->settings->set('theme', $new_name);
-                    $licenseModulesTemplates->setThemeName($new_name);
-                    $licenseModulesTemplates->updateLicenseInfo();
                     break;
                 }
                 case 'delete_theme': {
@@ -109,8 +100,6 @@ class ThemeAdmin extends IndexAdmin
                     if ($action_theme == $this->settings->get('theme')) {
                         $t = current($this->getThemes());
                         $this->settings->set('theme', $t->name);
-                        $licenseModulesTemplates->setThemeName($t->name);
-                        $licenseModulesTemplates->updateLicenseInfo();
                     }
                     break;
                 }
@@ -128,8 +117,6 @@ class ThemeAdmin extends IndexAdmin
         $current_theme->name = $this->settings->get('theme');
         $current_theme->locked = is_file($this->themes_dir.$current_theme->name.'/locked');
         $managers = $managersEntity->find();
-        $this->design->assign('is_licensed_template', $licenseModulesTemplates->isLicensedTemplate());
-        $this->design->assign('is_official_template', $licenseModulesTemplates->isOfficialTemplate());
         $this->design->assign('managers', $managers);
         $admin_theme_managers = $this->settings->get('admin_theme_managers');
         $this->design->assign('admin_theme_managers', $admin_theme_managers);

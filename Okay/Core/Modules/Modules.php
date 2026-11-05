@@ -53,8 +53,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
      */
     private $smarty;
 
-    private LicenseModulesTemplates $licenseModulesTemplates;
-
     /**
      * @var array список контроллеров бекенда
      */
@@ -73,8 +71,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
     private $modificationsInit = false;
 
     private $plugins;
-    private int $expireModulesNum = 0;
-    private int $notLicensedModulesNum = 0;
 
     public function __construct(
         EntityFactory $entityFactory,
@@ -82,8 +78,7 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         QueryFactory  $queryFactory,
         Database      $database,
         Config        $config,
-        Smarty        $smarty,
-        LicenseModulesTemplates $licenseModulesTemplates
+        Smarty        $smarty
     ) {
         $this->entityFactory = $entityFactory;
         $this->module        = $module;
@@ -91,7 +86,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         $this->db            = $database;
         $this->config        = $config;
         $this->smarty        = $smarty;
-        $this->licenseModulesTemplates = $licenseModulesTemplates;
     }
 
     /**
@@ -134,10 +128,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         ModuleCache::set($modules);
 
         foreach ($modules as $module) {
-            if (!$this->licenseModulesTemplates->isLicensedModule($module->vendor, $module->module_name)) {
-                $this->notLicensedModulesNum++;
-                continue;
-            }
             // Запоминаем какие модули мы запустили, они понадобятся, чтобы активировать их js и css
             $this->runningModules[$module->vendor . '/' . $module->module_name] = [
                 'vendor' => $module->vendor,
@@ -157,8 +147,7 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
             }
 
             // TODO: подумать над тем, чтобы перенести этот код отсюда
-            if (($activeOnly === true && (int)$module->enabled !== 1)
-                || !$this->licenseModulesTemplates->isLicensedModule($module->vendor, $module->module_name)) {
+            if ($activeOnly === true && (int)$module->enabled !== 1) {
                 $plugins = $this->module->getSmartyPlugins($module->vendor, $module->module_name);
                 foreach ($plugins as $plugin) {
                     $reflector = new \ReflectionClass($plugin['class']);
@@ -187,25 +176,12 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
 
             if ($moduleParams = $this->module->getModuleParams($module->vendor, $module->module_name)) {
                 $this->modulesParams[$module->vendor . '/' . $module->module_name] = $moduleParams;
-                if ($moduleParams->getDaysToExpire() >= 0 || $moduleParams->isAccessExpired()) {
-                    $this->expireModulesNum++;
-                }
             }
 
             $this->backendControllersList = array_merge($this->backendControllersList, $this->startModule($module->id, $module->vendor, $module->module_name));
             DebugBar::stopMeasure("$module->vendor/$module->module_name", ['init' => '']);
         }
         ModuleCache::flush();
-    }
-
-    public function getExpireModulesNum(): int
-    {
-        return $this->expireModulesNum;
-    }
-
-    public function getNotLicensedModulesNum(): int
-    {
-        return $this->notLicensedModulesNum;
     }
 
     /**
@@ -382,11 +358,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         $notInstalledModules = $modulesEntity->findNotInstalled();
         foreach($notInstalledModules as $module) {
             $this->mockingSmartyPlugins($module);
-            if ($moduleParams = $this->module->getModuleParams($module->vendor, $module->module_name)) {
-                if ($moduleParams->getDaysToExpire() >= 0 || $moduleParams->isAccessExpired()) {
-                    $this->expireModulesNum++;
-                }
-            }
         }
     }
 

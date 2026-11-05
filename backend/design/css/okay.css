@@ -3415,16 +3415,6 @@ label.switch_label i{
     background-color: rgba(250, 250, 250, 0.51);
 }
 
-.okay_list .okay_list_body_item.module_access_expire{
-    background-color: var(--ok-warning-soft);
-    box-shadow: inset 0 0 0 1px var(--ok-warning);
-}
-
-.okay_list .okay_list_body_item.module_access_expired{
-    background-color: var(--ok-danger-soft);
-    box-shadow: inset 0 0 0 1px var(--ok-danger);
-}
-
 .module_official__name{
     display: inline-flex;
     align-items: flex-start;
@@ -3699,10 +3689,6 @@ label.switch_label i{
     width: 140px;
     text-align: center!important;
 }
-.okay_list .okay_list_module_license_status{
-    width: 180px;
-    text-align: center!important;
-}
 .okay_list .okay_list_module_version{
     width: 140px;
     text-align: center!important;
@@ -3856,7 +3842,7 @@ label.switch_label i{
     text-align: left;
 }
 .okay_list .okay_list_module_name{
-    width: calc(100% - 740px);
+    width: calc(100% - 560px);
     position: relative;
     text-align: left;
 }

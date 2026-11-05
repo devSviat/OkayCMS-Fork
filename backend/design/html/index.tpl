@@ -95,26 +95,9 @@
         {js file="air-datepicker/air-datepicker.js" admin=true}
     {/if}
 
-    {if $settings->gather_enabled}
-        {literal}
-        <!-- Google Tag Manager -->
-        <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                    })(window,document,'script','dataLayer','GTM-P6T2LJP');
-        </script>
-        <!-- End Google Tag Manager -->
-        {/literal}
-    {/if}
 </head>
 <body class="navbar-fixed {if $manager->menu_status && $is_mobile === false && $is_tablet === false}menu-pin{/if}">
 <a class="skip_link" href="#main_content">{$btr->index_skip_to_content|escape}</a>
-    <!-- Google Tag Manager (noscript) -->
-    {if $settings->gather_enabled}
-        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P6T2LJP" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    {/if}
-    <!-- End Google Tag Manager (noscript) -->
     <header class="navbar">
         <div class="container-fluid">
             <div id="mobile_menu" class="fn_mobile_menu hidden-xl-up  text_white">
@@ -149,17 +132,6 @@
                     {/if}
                 </div>
             </div>
-            {if $settings->email_for_module}
-            {else}
-            <div class="admin_switches hidden-md-down">
-                <div class="box_adswitch  hint-bottom-middle-t-info-s-small-mobile  hint-anim" data-hint="{$btr->index_btn_email_info_hint|escape}">
-                    <a class="btn_inner"  href="index.php?controller=ModulesAdmin">
-                        {include file='svg_icon.tpl' svgId='warn_icon'}
-                        <span class="">{$btr->index_btn_email_info|escape}</span>
-                    </a>
-                </div>
-            </div>
-            {/if}
             <div id="mobile_menu_right" class="fn_mobile_menu_right hidden-md-up  text_white float-xs-right">
                 {include file='svg_icon.tpl' svgId='mobile_menu2'}
             </div>
@@ -243,63 +215,11 @@
                                     <span class="notif_count">{$new_callbacks_counter}</span>
                                 </div>
                             {/if}
-                            {if $modules_access_expire_counter > 0}
-                                <div class="notif_item">
-                                    <a href="index.php?controller=ModulesAdmin" class="l_notif">
-                                        <span class="notif_icon boxed_notify">
-                                            {include file='svg_icon.tpl' svgId='left_modules'}
-                                        </span>
-                                        <span class="notif_title">{$btr->left_modules|escape}</span>
-                                    </a>
-                                    <span class="notif_count">{$modules_access_expire_counter}</span>
-                                </div>
-                            {/if}
-                            {if $not_licensed_modules_counter > 0}
-                                <div class="notif_item">
-                                    <a href="index.php?controller=ModulesAdmin" class="l_notif">
-                                        <span class="notif_icon boxed_notify">
-                                            {include file='svg_icon.tpl' svgId='left_modules'}
-                                        </span>
-                                        <span class="notif_title">{$btr->left_modules|escape}</span>
-                                    </a>
-                                    <span class="notif_count">{$not_licensed_modules_counter}</span>
-                                </div>
-                            {/if}
-                            {if $template_error_counter > 0}
-                                <div class="notif_item">
-                                    <a href="index.php?controller=ThemeAdmin" class="l_notif">
-                                        <span class="notif_icon boxed_notify">
-                                            {include file='svg_icon.tpl' svgId='left_design'}
-                                        </span>
-                                        <span class="notif_title">{$btr->left_theme_title|escape}</span>
-                                    </a>
-                                    <span class="notif_count">{$template_error_counter}</span>
-                                </div>
-                            {/if}
                             {get_design_block block="notification_counters"}
                             {if !$all_counter}
                                 <div class="notif_item">
                                     <span class="notif_title">{$btr->index_no_notification|escape}</span>
                                 </div>
-                            {/if}
-                        </div>
-                    </div>
-                </div>
-                {*Техподдержка*}
-                <div class="admin_techsupport">
-                    <div class="techsupport_inner">
-                        <a {if $support_info->public_key} data-hint="{$support_info->balance|balance}"{else} data-hint="Not active" {/if}  class="hint-bottom-middle-t-info-s-small-mobile  hint-anim"  href="index.php?controller=SupportAdmin">
-                            <span class="quickview_hidden hidden-lg-down">{$btr->index_support|escape}</span>
-                            {include file='svg_icon.tpl' svgId='techsupport'}
-                            {if $support_info->public_key}
-                            <span class="counter">{$support_info->new_messages|escape}</span>
-                            {/if}
-                        </a>
-                        <div class="techsupport_toggle hidden-md-up">
-                            {if $support_info->public_key}
-                            <span>{$support_info->balance|balance}</span>
-                            {else}
-                            <span>Not active</span>
                             {/if}
                         </div>
                     </div>
@@ -360,7 +280,7 @@
                                         <div class="fn_backend_menu_section" data-section_name="{$section}">{$section}</div>
                                     {/if}
 
-                                    <a class="fn_learning_{$section} nav-link {if $items|count > 1}fn_item_switch nav-dropdown-toggle{/if}{if $section == 'left_modules' && ($modules_access_expire_counter > 0 || $not_licensed_modules_counter > 0)} danger_counter{elseif $section == 'left_design' && $template_error_counter} danger_counter{/if}" href="{if $items|count > 1}javascript:;{else}index.php?controller={$items|first|first}{/if}">
+                                    <a class="fn_learning_{$section} nav-link {if $items|count > 1}fn_item_switch nav-dropdown-toggle{/if}" href="{if $items|count > 1}javascript:;{else}index.php?controller={$items|first|first}{/if}">
                                         <span class="{$section} title">{$btr->getTranslation({$section})}</span>
                                         <span class="icon-thumbnail">
                                             {if !empty($additional_section_icons[$section])}
@@ -453,14 +373,6 @@
                         </form>)
                         <div class="float-md-right">
                             <a href='index.php?controller=LicenseAdmin' class="text_white">{$btr->license_text|escape} </a>
-                            ,
-                            {if $support_info->public_key}
-                                <a class="text_success" href="index.php?controller=SupportAdmin">{$btr->index_support_active|escape} ({$support_info->new_messages|escape})</a>
-                            {else}
-                                <a href="index.php?controller=SupportAdmin">
-                                    <span class="text_attention">{$btr->index_support_not_active|escape}</span>
-                                </a>
-                            {/if}
                         </div>
                     </div>
                 </footer>
@@ -1380,21 +1292,6 @@
         $(document).on("click", ".fn_toggle_card", function () {
             $(this).closest(".fn_toggle_wrap").find('.fn_icon_arrow').toggleClass('rotate_180');
             $(this).closest(".fn_toggle_wrap").find(".fn_card").slideToggle(500);
-        });
-
-        /*
-        * скрипт отображения загрузки модуля
-        * */
-        $(document).on("click", ".fn_switch_add_module", function () {
-            if ($(this).hasClass('active')) {
-                $(this).removeClass('active');
-            }
-            else {
-                $(this).addClass('active');
-            }
-
-            $(".fn_hide_add_module").slideToggle(500);
-        return false;
         });
 
         /*

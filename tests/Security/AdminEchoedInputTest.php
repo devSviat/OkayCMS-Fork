@@ -7,18 +7,6 @@ use PHPUnit\Framework\TestCase;
 class AdminEchoedInputTest extends TestCase
 {
     /**
-     * Текст відповіді на тему підтримки повертається у форму після помилки
-     * валідації; без escape "</textarea><script>" виходить за межі поля.
-     */
-    public function testTopicMessageIsEscapedInsideTheTextarea()
-    {
-        $template = $this->source('backend/design/html/topic.tpl');
-
-        $this->assertStringContainsString('{$topic_message|escape|nl2br}', $template);
-        $this->assertDoesNotMatchRegularExpression('/\{\$topic_message(\|nl2br)?\}/', $template);
-    }
-
-    /**
      * Без сесії адміна $manager — null: читання ->lang до перевірки давало
      * warning, а trigger_error(E_USER_ERROR) — 500 замість відмови.
      */

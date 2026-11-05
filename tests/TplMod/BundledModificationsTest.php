@@ -6,7 +6,6 @@ namespace TplMod;
 
 use Okay\Core\Config;
 use Okay\Core\Modules\DTO\ModificationDTO;
-use Okay\Core\Modules\LicenseModulesTemplates;
 use Okay\Core\Modules\Module;
 use Okay\Core\TplMod\ModificationChecker;
 use Okay\Core\TplMod\Parser;
@@ -99,10 +98,7 @@ class BundledModificationsTest extends \PHPUnit\Framework\TestCase
 
     private function module(): Module
     {
-        return new Module(
-            $this->createStub(LoggerInterface::class),
-            $this->createStub(LicenseModulesTemplates::class)
-        );
+        return new Module($this->createStub(LoggerInterface::class));
     }
 
     private function checker(): ModificationChecker

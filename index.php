@@ -118,8 +118,6 @@ try {
 
     if (isset($_GET['logout'])) {
         unset($_SESSION['admin']);
-        unset($_SESSION['modules_request_timeout']);
-        unset($_SESSION['support_request_timeout']);
         unset($_SESSION['last_version_data']);
         setcookie('admin_login', '', [
             'expires'  => time() - 100,
