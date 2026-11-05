@@ -16,7 +16,7 @@ class Config
     /*Версия системы*/
     public string $version = '4.5.3';
     /*Версія форку (лінійка релізів okaycms-fork/vX.Y.Z)*/
-    public string $forkVersion = '1.6.5';
+    public string $forkVersion = '1.6.6';
     /*Тип системы*/
     public string $version_type = 'pro';
 
