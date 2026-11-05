@@ -103,14 +103,6 @@
                                 </select>
                             </div>
                         </div>
-                        {*license*}
-                        <div class="col-md-6">
-                            <div class="heading_label">{$btr->settings_general_email_module|escape}</div>
-                            <div class="mb-1">
-                                <input name="email_for_module" class="form-control" type="text" value="{$settings->email_for_module|escape}" />
-                            </div>
-                        </div>
-                        {*license*}
                         <div class="col-xs-12">
                             <div class="heading_label">{$btr->settings_general_tech_message|escape}</div>
                             <div class="">
@@ -333,39 +325,10 @@
 
     <div class="row">
         <div class="col-lg-12 col-md-12">
-            <div class="boxed fn_toggle_wrap min_height_210px">
-                <div class="heading_box">
-                    {$btr->settings_general_gathering_data}
-                    <div class="toggle_arrow_wrap fn_toggle_card text-primary">
-                        <a class="btn-minimize" href="javascript:;" ><span class="fn_icon_arrow">{include file='svg_icon.tpl' svgId='chevron_down'}</span></a>
-                    </div>
-                </div>
-                <div class="toggle_body_wrap on fn_card">
-                    <div class="permission_block">
-                        <div class="permission_boxes row">
-                            <div class="col-xl-12 col-lg-12 col-md-12">
-                                <div class="permission_box ">
-                                    <span title="{$btr->settings_general_gather_enabled}">{$btr->settings_general_gather_enabled}</span>
-                                    <label class="switch switch-default">
-                                        <input class="switch-input" name="gather_enabled" value='1' type="checkbox" {if $settings->gather_enabled}checked=""{/if}/>
-                                        <span class="switch-label"></span>
-                                        <span class="switch-handle"></span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xs-12 clearfix"></div>
-                </div>
-                <div class="row">
-                    <div class="col-lg-12 col-md-12 ">
-                        <button type="submit" class="btn btn_small btn_blue float-md-right">
-                            {include file='svg_icon.tpl' svgId='checked'}
-                            <span>{$btr->general_apply|escape}</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <button type="submit" class="btn btn_small btn_blue float-md-right">
+                {include file='svg_icon.tpl' svgId='checked'}
+                <span>{$btr->general_apply|escape}</span>
+            </button>
         </div>
     </div>
 </form>

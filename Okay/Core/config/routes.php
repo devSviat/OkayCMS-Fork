@@ -290,13 +290,6 @@ return [
             'method' => 'getCommonJs',
         ],
     ],
-    'support' => [
-        'slug' => '/support.php',
-        'params' => [
-            'controller' => 'SupportController',
-            'method' => 'checkDomain',
-        ],
-    ],
     'product' => [
         'slug' => $productRouteParams->getSlug(),
         'patterns' => $productRouteParams->getPatterns(),

@@ -631,12 +631,6 @@ parameters:
 			path: Okay/Core/Modules/Installer.php
 
 		-
-			message: '#^Parameter \#3 \$value of function curl_setopt expects bool, int given\.$#'
-			identifier: argument.type
-			count: 2
-			path: Okay/Core/Modules/LicenseModulesTemplates.php
-
-		-
 			message: '#^Binary operation "\+\=" between string and 100 results in an error\.$#'
 			identifier: assignOp.invalid
 			count: 1
@@ -1475,12 +1469,6 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: Okay/Core/SmartyPlugins/Plugins/Phone.php
-
-		-
-			message: '#^Parameter \#3 \$value of function curl_setopt expects bool, int given\.$#'
-			identifier: argument.type
-			count: 2
-			path: Okay/Core/Support.php
 
 		-
 			message: '#^Call to function is_array\(\) with array\<mixed, mixed\> will always evaluate to true\.$#'

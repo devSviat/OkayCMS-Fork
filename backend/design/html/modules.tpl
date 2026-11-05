@@ -20,82 +20,14 @@
             <div class="box_heading heading_page">
                 {$btr->modules_list_title|escape}
             </div>
-            <div class="box_btn_heading hidden-xs-down">
-                <a class="btn btn_small btn-info fn_switch_add_module" href="javascript:;">
-                    {include file='svg_icon.tpl' svgId='plus'}
-                    {include file='svg_icon.tpl' svgId='minus'}
-                    <span>{$btr->modules_add_new_module|escape}</span>
-                </a>
-            </div>
         </div>
     </div>
-</div>
-
-<div class="fn_hide_add_module hidden-xs-down" style="display: none;">
-    <div class="boxed">
-        <div class="">
-            <div class="heading_box">
-                {$btr->modules_download_heading|escape}
-            </div>
-            <form method="post" id="fn_download_module" action="{url controller='ModulesAdmin@downloadModule'}">
-                <div class="alert alert--center alert--icon alert--error fn_error_block hidden">
-                    <div class="alert__content">
-                        <div class="alert__title fn_error_text"></div>
-                    </div>
-                </div>
-                <input type="hidden" name="session_id" value="{$smarty.session.id}">
-        
-                <div class="alert  alert--icon alert--info">
-                    <div class="alert__content">
-                        <div class="alert__title">{$btr->alert_info|escape}</div>
-                        <p>
-                            {strip}
-                            {$btr->modules_url_description|escape}
-                            <a href="index.php?controller=ModulesAdmin@marketplace">{$btr->modules_url_description_marketplace}</a>
-                            {$btr->modules_url_description_2|escape}
-                            {/strip}
-                        </p>
-                        <p>{$btr->modules_url_example|escape} {$config->marketplace_url|escape}my_module/&#60;uniqueHash&#62;</p>
-                    </div>
-                </div>
-                
-                <div class="modules_add_new_modules">
-                    <div class="input-group input-group--dabbl input-group--reset">
-                        <span class="input-group-addon input-group-addon--left">URL</span>
-                        <input class="form-control" type="text" name="access_url">
-                    </div>
-                    <button type="submit" class="btn btn_small btn_blue">
-                        {include file='svg_icon.tpl' svgId='checked'}
-                        <span>{$btr->general_apply|escape}</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
 </div>
 
 {*Главная форма страницы*}
 <div class="fn_toggle_wrap">
     {if $modules}
         <form class="fn_form_list" method="post">
-            <div class="row">
-                <div class="col-md-12 col-lg-12">
-                    <div class="heading_label">{$btr->settings_general_email_module|escape}</div>
-                </div>
-                <div class="col-md-6 col-lg-6">
-                    <div class="mb-1">
-                        <input name="email_for_module" class="form-control" type="email" required
-                               value="{$settings->email_for_module|escape}"/>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-6">
-                    <button type="submit" class="btn btn_small btn_blue">
-                        {include file='svg_icon.tpl' svgId='checked'}
-                        <span>{$btr->general_apply|escape}</span>
-                    </button>
-                </div>
-            </div>
             <div class="okay_list products_list bg_white mb-1 fn_sort_list">
                 <input type="hidden" name="session_id" value="{$smarty.session.id}">
                 {*Шапка таблицы*}
@@ -107,7 +39,6 @@
                     </div>
                     <div class="okay_list_heading okay_list_photo">{$btr->general_photo|escape}</div>
                     <div class="okay_list_heading okay_list_module_name">{$btr->general_name|escape}</div>
-                    <div class="okay_list_heading okay_list_module_license_status hidden-md-down">{$btr->general_status|escape}</div>
                     <div class="okay_list_heading okay_list_module_version hidden-md-down">{$btr->module_version|escape}</div>
                     <div class="okay_list_heading okay_list_status">{$btr->general_enable|escape}</div>
                     <div class="okay_list_heading okay_list_setting okay_list_products_setting">{$btr->general_activities|escape}</div>
@@ -157,38 +88,7 @@
         $(this).closest(".fn_row").find('input[type="checkbox"][name*="check"]').prop('checked', true);
         $(this).closest(".fn_form_list").trigger('submit');
     });
-    
-    $(document).on("submit", "#fn_download_module", function (e) {
-        e.preventDefault();
-        let form = $(this),
-            urlInput = form.find('[name="access_url"]'),
-            errorBlock = form.find('.fn_error_block');
-        urlInput.removeClass('error');
-        errorBlock.addClass('hidden');
-        if (!/{str_replace('/', '\/', $config->marketplace_url)}my_module\/\w+$/.test(urlInput.val())) {
-            urlInput.addClass('error');
-        }
-        
-        $.ajax({
-            url: '{url controller='ModulesAdmin@downloadModule'}',
-            dataType: "json",
-            type: "POST",
-            data: form.serialize(),
-            success: function (data) {
-                if (data.hasOwnProperty('installed_version')) {
-                    $('.fn_error_text').text('{$btr->modules_already_installed|escape} ' + data.installed_version);
-                    errorBlock.removeClass('hidden');
-                }
-                if (data.hasOwnProperty('error')) {
-                    $('.fn_error_text').text(data.error);
-                    errorBlock.removeClass('hidden');
-                }
-                if (data.hasOwnProperty('success') && data.success === true) {
-                    $('.fn_modules_list').prepend(data.modules);
-                }
-            }
-        });
-    });
+
     $(document).on("click", ".fn_switch", function (e) {
     e.preventDefault();
 
@@ -200,20 +100,4 @@
       $(this).addClass("active");
     }
   });
-    $(document).on('click', '.fn_continue_access', function () {
-        let destination = $(this).data('target')
-            + '?cite_return_url={urlencode($rootUrl)}{urlencode($smarty.server.REQUEST_URI)}'
-            + '&continue_modules_expire=1'
-            + '&checkout_domain={$domain}'
-            +'&checkout_email={$settings->email_for_module}';
-        $.ajax({
-            url: '{url controller='ModulesAdmin@resetModulesAccessExpiresCache'}',
-            type: 'GET',
-            cache: false,
-            contentType: false,
-            processData: false
-        }).done(function(response) {
-            window.location.replace(destination);
-        });
-    });
 </script>

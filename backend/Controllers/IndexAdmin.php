@@ -15,7 +15,6 @@ use Okay\Core\Design;
 use Okay\Core\Modules\Module;
 use Okay\Core\BackendPostRedirectGet;
 use Okay\Core\Router;
-use Okay\Core\Support;
 use Okay\Core\EntityFactory;
 use Okay\Core\Languages;
 use Okay\Core\Request;
@@ -29,7 +28,6 @@ use Okay\Core\Update\UpdateCheckHelper;
 use Okay\Entities\ManagersEntity;
 use Okay\Entities\LanguagesEntity;
 use Okay\Entities\CurrenciesEntity;
-use Okay\Entities\SupportInfoEntity;
 
 class IndexAdmin
 {
@@ -88,16 +86,6 @@ class IndexAdmin
     protected $managers;
 
     /**
-     * @var SupportInfoEntity
-     */
-    protected $supportInfoEntity;
-
-    /**
-     * @var Support
-     */
-    protected $support;
-
-    /**
      * @var BackendPostRedirectGet
      */
     protected $postRedirectGet;
@@ -116,8 +104,6 @@ class IndexAdmin
         LanguagesEntity $languagesEntity,
         Managers $managers,
         ManagersEntity $managersEntity,
-        Support $support,
-        SupportInfoEntity $supportInfoEntity,
         Router $router,
         BackendMainHelper $backendMainHelper,
         Module $module,
@@ -135,8 +121,6 @@ class IndexAdmin
         $this->entityFactory = $entityFactory;
         $this->db            = $db;
         $this->managers      = $managers;
-        $this->support       = $support;
-        $this->supportInfoEntity = $supportInfoEntity;
         $this->postRedirectGet   = $postRedirectGet;
         
         $design->assign('is_mobile', $design->isMobile());
@@ -175,20 +159,7 @@ class IndexAdmin
         $design->assign('manager', $this->manager);
         $design->assign('registered_front_css', $frontTemplateConfig->getRegisteredCss());
 
-        $supportInfo = $supportInfoEntity->getInfo();
-        $this->design->assign('support_info', $supportInfo);
-
         $this->design->assign('front_routes', $router->getFrontRoutes());
-        
-        $isNotLocalServer = !in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '0:0:0:0:0:0:0:1']);
-        if (empty($supportInfo->public_key) && !empty($supportInfo->is_auto) && $isNotLocalServer) {
-            $supportInfoEntity->updateInfo(['is_auto' => 0]);
-            if (!empty($this->manager) && $support->getNewKeys($this->manager->email) !== false) {
-                $this->response->addHeader("Refresh:0");
-                $this->response->sendHeaders();
-                exit();
-            }
-        }
 
         if ($this->backendController != "AuthAdmin") {
             $menu = $managerMenu->getMenu($this->manager);

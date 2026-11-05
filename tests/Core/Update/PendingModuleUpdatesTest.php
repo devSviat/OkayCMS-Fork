@@ -21,9 +21,9 @@ class PendingModuleUpdatesTest extends TestCase
             self::row('OkayCMS', 'NovaposhtaCost', '1.3.0'),
             self::row('Sviat', 'Ahead', '2.1.0'),
         ], $this->moduleCore([
-            'OkayCMS/GoogleMerchant' => ['1.3.0', true],
-            'OkayCMS/NovaposhtaCost' => ['1.3.0', true],
-            'Sviat/Ahead' => ['2.0.0', true],
+            'OkayCMS/GoogleMerchant' => '1.3.0',
+            'OkayCMS/NovaposhtaCost' => '1.3.0',
+            'Sviat/Ahead' => '2.0.0',
         ]));
 
         self::assertSame([[
@@ -34,37 +34,26 @@ class PendingModuleUpdatesTest extends TestCase
         ]], $pending);
     }
 
-    /** Без ліцензії сторінка «Модулі» кнопки не показує, тож і тут нема куди вести. */
-    public function testUnlicensedModuleIsNotListed(): void
-    {
-        self::assertSame([], PendingModuleUpdates::collect(
-            [self::row('Vendor', 'Paid', '1.0.0')],
-            $this->moduleCore(['Vendor/Paid' => ['1.1.0', false]])
-        ));
-    }
-
     /** ok_modules.version буває NULL: модуль стоїть, а версія не записана. */
     public function testModuleWithoutRecordedVersionIsListed(): void
     {
         $pending = PendingModuleUpdates::collect(
             [self::row('OkayCMS', 'Legacy', null)],
-            $this->moduleCore(['OkayCMS/Legacy' => ['1.0.1', true]])
+            $this->moduleCore(['OkayCMS/Legacy' => '1.0.1'])
         );
 
         self::assertSame('', $pending[0]['installed']);
         self::assertSame('1.0.1', $pending[0]['available']);
     }
 
-    /** @param array<string, array{0: string, 1: bool}> $json vendor/module => [версія, ліцензія] */
+    /** @param array<string, string> $json vendor/module => версія */
     private function moduleCore(array $json): Module
     {
         $module = $this->createStub(Module::class);
         $module->method('getVersionControl')->willReturn(new VersionControl());
         $module->method('getModuleParams')->willReturnCallback(function ($vendor, $name) use ($json) {
-            [$version, $licensed] = $json["$vendor/$name"];
             $params = new ModuleParamsDTO();
-            $params->setVersion($version);
-            $params->setIsLicensed($licensed);
+            $params->setVersion($json["$vendor/$name"]);
 
             return $params;
         });

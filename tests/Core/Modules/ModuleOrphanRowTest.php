@@ -2,7 +2,6 @@
 
 namespace Core\Modules;
 
-use Okay\Core\Modules\LicenseModulesTemplates;
 use Okay\Core\Modules\Module;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -24,7 +23,7 @@ class ModuleOrphanRowTest extends TestCase
             ->method('warning')
             ->with($this->stringContains('installed but not exists'));
 
-        $module = new Module($logger, $this->createStub(LicenseModulesTemplates::class));
+        $module = new Module($logger);
 
         // Ні виводу, ні trigger_error: обидва друкують у тіло відповіді до
         // заголовків при display_errors, і наступний header() падає з
@@ -53,7 +52,7 @@ class ModuleOrphanRowTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->never())->method('warning');
 
-        $module = new Module($logger, $this->createStub(LicenseModulesTemplates::class));
+        $module = new Module($logger);
 
         // Каталог, який точно існує в репозиторії.
         $this->assertFalse($module->moduleDirectoryNotExists('OkayCMS', 'Feeds'));
