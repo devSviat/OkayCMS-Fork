@@ -63,6 +63,31 @@ class NPDeliveryQuoteHelperTest extends TestCase
         $this->assertNull($this->quotes->find('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799)));
     }
 
+    /** Тарифи НП змінюються: ціна, розрахована давно, при оформленні вже не береться. */
+    public function testExpiredQuoteGetsNothing(): void
+    {
+        $this->quotes->remember('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799), 95.0);
+        $_SESSION['novaposhta_delivery_quotes']['novaposhta:3']['expires'] = time() - 1;
+
+        $this->assertNull($this->quotes->find('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799)));
+    }
+
+    public function testFreshQuoteLivesForAtLeastAnHour(): void
+    {
+        $this->quotes->remember('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799), 95.0);
+
+        $this->assertGreaterThanOrEqual(time() + 3600, $_SESSION['novaposhta_delivery_quotes']['novaposhta:3']['expires']);
+    }
+
+    /** Запис без строку (збережений до появи строку) вважається простроченим. */
+    public function testQuoteWithoutExpiryGetsNothing(): void
+    {
+        $this->quotes->remember('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799), 95.0);
+        unset($_SESSION['novaposhta_delivery_quotes']['novaposhta:3']['expires']);
+
+        $this->assertNull($this->quotes->find('novaposhta:3', ['city' => 'kyiv'], $this->cart([1 => 1], 1799)));
+    }
+
     /** @param array<int, int> $items variant_id => amount */
     private function cart(array $items, float $total): object
     {

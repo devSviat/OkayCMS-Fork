@@ -12,6 +12,7 @@ use Okay\Core\Settings;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Entities\DeliveriesEntity;
 use Okay\Entities\OrdersEntity;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPAdminIdentity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPCalcHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuote;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuoteHelper;
@@ -30,7 +31,8 @@ class NovaposhtaCostController extends AbstractController
         BackendOrdersHelper $backendOrdersHelper,
         Settings $settings,
         NPCalcHelper $calcHelper,
-        NPDeliveryQuoteHelper $deliveryQuoteHelper
+        NPDeliveryQuoteHelper $deliveryQuoteHelper,
+        NPAdminIdentity $adminIdentity
     ) {
         $this->design->assignJsVar('np_delivery_module_id', 1);
         $cityRef = $this->request->get('city');
@@ -41,6 +43,11 @@ class NovaposhtaCostController extends AbstractController
         $currencyId = $this->request->get('currency', 'integer', $_SESSION['currency_id']);
 
         if ($orderId) {
+            if ($adminIdentity->login() === null) {
+                $this->response->setStatusCode(403);
+                $this->response->setContent(json_encode(['error' => 'forbidden']), RESPONSE_JSON);
+                return;
+            }
             if (!$order = $ordersEntity->get($orderId)) {
                 $this->response->setContent(json_encode(['error' => 'order not found']), RESPONSE_JSON);
                 return;

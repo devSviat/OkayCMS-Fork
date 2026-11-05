@@ -16,6 +16,9 @@ class NPDeliveryQuoteHelper
 {
     private const string SESSION_KEY = 'novaposhta_delivery_quotes';
 
+    /** Тарифи НП змінюються; давній розрахунок при оформленні не береться. */
+    private const int TTL_SECONDS = 7200;
+
     /**
      * @param string $scope   хто рахує, наприклад 'novaposhta:3' (модуль і спосіб доставки)
      * @param array  $context усе, від чого залежить ціна, крім кошика
@@ -31,6 +34,7 @@ class NPDeliveryQuoteHelper
         $_SESSION[self::SESSION_KEY][$scope] = [
             'key' => $this->key($context, $cart),
             'price' => $price,
+            'expires' => time() + self::TTL_SECONDS,
         ];
 
         ExtenderFacade::execute(__METHOD__, null, func_get_args());
@@ -45,7 +49,8 @@ class NPDeliveryQuoteHelper
 
         $price = null;
         if (is_array($quote)
-            && isset($quote['key'], $quote['price'])
+            && isset($quote['key'], $quote['price'], $quote['expires'])
+            && (int)$quote['expires'] >= time()
             && hash_equals((string)$quote['key'], $this->key($context, $cart))
         ) {
             $price = (float)$quote['price'];
