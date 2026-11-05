@@ -323,7 +323,7 @@
         </div>
     {/if}
 
-    <div class="row">
+    <div class="row mb-2">
         <div class="col-lg-12 col-md-12">
             <button type="submit" class="btn btn_small btn_blue float-md-right">
                 {include file='svg_icon.tpl' svgId='checked'}
