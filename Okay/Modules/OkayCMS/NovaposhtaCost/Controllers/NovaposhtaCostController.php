@@ -12,9 +12,9 @@ use Okay\Core\Settings;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Entities\DeliveriesEntity;
 use Okay\Entities\OrdersEntity;
-use Okay\Helpers\DeliveryQuoteHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPCalcHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuote;
+use Okay\Modules\OkayCMS\NovaposhtaCost\Helpers\NPDeliveryQuoteHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\VO\NPCalcVO;
 use Psr\Log\LoggerInterface;
 
@@ -30,7 +30,7 @@ class NovaposhtaCostController extends AbstractController
         BackendOrdersHelper $backendOrdersHelper,
         Settings $settings,
         NPCalcHelper $calcHelper,
-        DeliveryQuoteHelper $deliveryQuoteHelper
+        NPDeliveryQuoteHelper $deliveryQuoteHelper
     ) {
         $this->design->assignJsVar('np_delivery_module_id', 1);
         $cityRef = $this->request->get('city');

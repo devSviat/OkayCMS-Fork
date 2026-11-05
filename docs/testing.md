@@ -72,6 +72,8 @@ failOnWarning="true"
 | `Core/DesignCompileDirTest` | повернути мовчазний `mkdir()` каталогу компіляції — без нього не рендериться жодна сторінка |
 | `Admin/ThemeAdminDirCopyTest` | зробити копію теми, яка вдає успіх і перемикає вітрину на недокопійований каталог |
 | `Core/SmartyPlugins/PluginSignatureTest` | типізувати обʼєкт шаблону в плагіні |
+| `Security/DeliveryPriceFromFormTest` | модулю доставки взяти ціну доставки з форми кошика чи ставити її чужим способам доставки ([modules/delivery-price.md](modules/delivery-price.md)) |
+| `Helpers/DeliveryPriceGuardTest` | пропустити в замовлення від'ємну чи нечислову ціну доставки від модуля |
 | `Core/Console/CommandNamesTest` | лишити команду без `#[AsCommand]` — це кладе весь `./ok` |
 | `Core/QueryFactory/NoPositionalBindsTest` | позиційні `?` у `where()`, яких aura 3 не вміє |
 | `Security/NoDatabaseChangeTest`, `Security/UpgradeNotesTest` | розійтись зі станом, зафіксованим ітерацією безпеки |
