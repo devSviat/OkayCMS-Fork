@@ -26,29 +26,13 @@ class Module
     const COMMON_MODULE_DIRECTORY = 'Okay/Modules/';
 
     protected LoggerInterface $logger;
-    protected LicenseModulesTemplates $licenseModulesTemplates;
-    protected array $modulesExpires;
 
-    public function __construct(
-        LoggerInterface $logger,
-        LicenseModulesTemplates $licenseModulesTemplates
-    ) {
+    public function __construct(LoggerInterface $logger)
+    {
         $this->logger = $logger;
-        $this->licenseModulesTemplates = $licenseModulesTemplates;
     }
 
     private static array $modulesIds;
-
-    /**
-     * @param array $modulesExpires
-     * @return void
-     *
-     * Метод встановлює інформацію по закінченню терміну доступу до оновлень модулів
-     */
-    public function setModulesExpires(array $modulesExpires)
-    {
-        $this->modulesExpires = $modulesExpires;
-    }
 
     /**
      * Метод возвращает параметры модуля описанные в module.json
@@ -94,24 +78,7 @@ class Module
             }
         }
 
-        if (isset($this->modulesExpires[$vendor . '/' . $moduleName])) {
-            $moduleExpireInfo = $this->modulesExpires[$vendor . '/' . $moduleName];
-            if ($moduleExpireInfo->daysToExpire >= 0) {
-                $moduleParamsDTO->setDaysToExpire((int)$moduleExpireInfo->daysToExpire);
-            } else {
-                $moduleParamsDTO->setAccessExpired(true);
-            }
-            $moduleParamsDTO->setAddToCartUrl($moduleExpireInfo->addToCartUrl);
-        }
         $moduleParamsDTO->setMathVersion($this->getMathVersion($moduleParamsDTO->getVersion()));
-
-        $moduleParamsDTO->setIsOfficial(
-            $this->licenseModulesTemplates->isOfficialModule($vendor, $moduleName)
-        );
-
-        $moduleParamsDTO->setIsLicensed(
-            $this->licenseModulesTemplates->isLicensedModule($vendor, $moduleName)
-        );
 
         return $moduleParamsDTO;
     }

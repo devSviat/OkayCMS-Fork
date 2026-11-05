@@ -33,20 +33,6 @@
                            </div>
                        </div>
                    {/if}
-                   {if $server_ip}
-                   <div class="col-lg-4 col-md-4 col-sm-12">
-                       <div class="banner_card">
-                           <div class="system_header">
-                               <span class="font-weight-bold">{$btr->system_server_ip}</span>
-                           </div>
-                           <div class="banner_card_block">
-                               <div class="system_information">
-                                   IP: {$server_ip|escape}
-                               </div>
-                           </div>
-                       </div>
-                   </div>
-                   {/if}
                    {if $sql_info}
                        <div class="col-lg-4 col-md-4 col-sm-12">
                            <div class="banner_card">

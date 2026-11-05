@@ -27,9 +27,7 @@ final class PendingModuleUpdates
         foreach ($installedModules as $module) {
             $params = $moduleCore->getModuleParams($module->vendor, $module->module_name);
 
-            // Та сама умова, що й у кнопки «оновити» на сторінці «Модулі»: без
-            // ліцензії кнопки там немає, і посилання вело б у нікуди.
-            if (!$params->isLicensed() || !$versionControl->lessThan($module->version, $params->getVersion())) {
+            if (!$versionControl->lessThan($module->version, $params->getVersion())) {
                 continue;
             }
 

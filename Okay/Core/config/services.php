@@ -9,8 +9,6 @@ use Monolog\Level;
 use Okay\Core\Log\SafeRotatingFileHandler;
 use Okay\Core\Console\Application AS ConsoleApplication;
 use Okay\Core\Entity\UrlUniqueValidator;
-use Okay\Core\Modules\LicenseModulesTemplates;
-use Okay\Core\Modules\LicenseStorage;
 use Okay\Core\Modules\ModuleDesign;
 use Okay\Core\Modules\ModulesEntitiesFilters;
 use Okay\Core\OkayContainer\OkayContainer;
@@ -527,7 +525,6 @@ $services = [
         'class' => Module::class,
         'arguments' => [
             new SR(LoggerInterface::class),
-            new SR(LicenseModulesTemplates::class),
         ],
     ],
     ModuleDesign::class => [
@@ -547,7 +544,6 @@ $services = [
             new SR(Database::class),
             new SR(Config::class),
             new SR(Smarty::class),
-            new SR(LicenseModulesTemplates::class),
         ],
     ],
     Installer::class => [
@@ -555,14 +551,6 @@ $services = [
         'arguments' => [
             new SR(EntityFactory::class),
             new SR(Module::class),
-        ],
-    ],
-    Support::class => [
-        'class' => Support::class,
-        'arguments' => [
-            new SR(Config::class),
-            new SR(Settings::class),
-            new SR(EntityFactory::class),
         ],
     ],
     EntityMigrator::class => [
@@ -702,41 +690,6 @@ $services = [
             new PR('logger.dir'),
             new PR('root_dir'),
         ]
-    ],
-    LicenseModulesTemplates::class => [
-        'class' => LicenseModulesTemplates::class,
-        'arguments' => [
-            new SR(QueryFactory::class),
-            new SR(Database::class),
-            new SR(Config::class),
-            new SR(LicenseStorage::class),
-            new PR('root_dir'),
-        ],
-        'calls' => [
-            [
-                'method' => 'setThemeName',
-                'arguments' => [
-                    new PR('design.theme'),
-                ]
-            ],
-            [
-                'method' => 'setLicenseEmail',
-                'arguments' => [
-                    new PR('license.email'),
-                ]
-            ],
-            [
-                'method' => 'initLicenseInfo',
-                'arguments' => [
-                ]
-            ],
-        ],
-    ],
-    LicenseStorage::class => [
-        'class' => LicenseStorage::class,
-        'arguments' => [
-            new PR('license.compile_code_dir'),
-        ],
     ],
 ];
 

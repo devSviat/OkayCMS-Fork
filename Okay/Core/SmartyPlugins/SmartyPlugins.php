@@ -148,9 +148,6 @@ $plugins = [
     Plugins\Time::class => [
         'class' => Plugins\Time::class,
     ],
-    Plugins\Balance::class => [
-        'class' => Plugins\Balance::class,
-    ],
     Plugins\GetTheme::class => [
         'class' => Plugins\GetTheme::class,
         'arguments' => [

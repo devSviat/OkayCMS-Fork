@@ -15,7 +15,6 @@ use Okay\Core\Config;
 use Okay\Core\Entity\Entity;
 use Okay\Core\Languages;
 use Okay\Core\Security\SessionNames;
-use Okay\Admin\Helpers\BackendModulesHelper;
 
 ini_set('display_errors', 'off');
 
@@ -97,17 +96,6 @@ if (!empty($_SESSION['admin_lang_id'])) {
     $_SESSION['admin_lang_id'] = $languages->getLangId();
 }
 
-// Оновлюємо кеш даних інформації по терміну доступу до оновлень модулів.
-// Тільки для залогіненого менеджера: інакше анонімне звернення до /backend/
-// змушує сервер сходити на маркетплейс і записати два рядки в ok_settings.
-// $manager резолвиться нижче, а тут достатньо того самого $_SESSION['admin'] -
-// перенести виклик під нього не можна, бо кеш читається на 40 рядків нижче.
-/** @var BackendModulesHelper $backendModulesHelper */
-$backendModulesHelper = $DI->get(BackendModulesHelper::class);
-if (!empty($_SESSION['admin'])) {
-    $backendModulesHelper->updateModulesAccessExpiresCache();
-}
-
 /** @var BackendTranslations $backendTranslations */
 $backendTranslations = $DI->get(BackendTranslations::class);
 
@@ -131,13 +119,6 @@ $design = $DI->get(Design::class);
 
 /** @var Module $module */
 $module = $DI->get(Module::class);
-
-/** @var BackendModulesHelper $modulesHelper */
-$modulesHelper = $DI->get(BackendModulesHelper::class);
-
-$module->setModulesExpires(
-    $modulesHelper->getModulesAccessExpiresFromCache()
-);
 
 // Запускаем все модули
 $modules->startAllModules();

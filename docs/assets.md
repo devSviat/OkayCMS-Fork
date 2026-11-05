@@ -383,15 +383,19 @@ fancyBox, і так з чужого `src` не з'явиться нової ді
 
 ## Вендорний Highcharts в адмінці
 
-`backend/design/js/highcharts/` — не повний дистрибутив, а три файли, які підключає
-`stats.tpl`: `highcharts.js`, `themes/avocado.js` і `modules/exporting.js`. Повний
+`backend/design/js/highcharts/` — не повний дистрибутив, а файли, які підключає
+`stats.tpl`: `highcharts.js`, `themes/avocado.js`, `modules/exporting.js` і
+`modules/offline-exporting.js`. Повний
 реліз важить 17 МБ і містить 558 файлів; решту (`es-modules/`, усі `*.src.js` і
 `*.map`, `lib/`, `css/`, невживані модулі й теми) прибрано з тієї ж причини, що й
 у CodeMirror: під `backend/design/` усе віддається публічно за розширенням.
 
-`lib/` тримає `canvg`, `jspdf` і `svg2pdf` — вони потрібні лише `offline-exporting.js`,
-якого адмінка не підключає. Якщо колись знадобиться експорт без звернення до сервера
-Highcharts, ці файли доведеться повернути.
+Експорт графіка йде лише в браузері: `offline-exporting.js` (7.2.0, звірено з npm-пакетом
+через jsDelivr і unpkg), `fallbackToExportServer: false` і `libURL` на локальний
+`design/js/highcharts/lib/`. Без цього модуля `exporting.js` відправляв графік продажів
+на `export.highcharts.com`, а дефолтний `libURL` підвантажував скрипти з
+`code.highcharts.com`. `lib/` (`canvg`, `jspdf`, `svg2pdf`) не повернуто, тому PDF із
+меню прибрано; PNG, JPEG і SVG сучасний браузер малює сам.
 
 Ліцензія Highcharts комерційна, тож підняття мажорної версії — питання ліцензії
 магазину, а не лише сумісності коду.

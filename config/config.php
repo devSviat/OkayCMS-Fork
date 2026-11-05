@@ -30,9 +30,6 @@ db_sql_mode = "ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
 ;Зсув часового поясу
 ;db_timezone = +02:00
 
-[modules]
-marketplace_url = https://modules.okay-cms.com/
-
 [php]
 error_reporting = E_ALL
 php_charset = UTF8

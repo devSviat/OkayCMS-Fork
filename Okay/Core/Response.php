@@ -6,7 +6,6 @@ namespace Okay\Core;
 
 use Okay\Core\Adapters\Response\AdapterManager;
 use Okay\Core\Security\SecurityHeaders;
-use Okay\Core\Modules\LicenseModulesTemplates;
 
 class Response
 {

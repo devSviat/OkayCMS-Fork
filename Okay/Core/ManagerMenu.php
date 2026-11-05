@@ -16,7 +16,6 @@ class ManagerMenu
      * @var array
      */
     private $systemControllers = [
-        'left_support'       => ['SupportAdmin', 'TopicAdmin'],
         'left_license_title' => ['LicenseAdmin'],
         'left_open_ai' => ['OpenAiAdmin'],
     ];
@@ -101,7 +100,6 @@ class ManagerMenu
         ],
         'left_modules' => [
             'left_modules_list'          => ['ModulesAdmin'],
-            'left_modules_marketplace'   => ['ModulesAdmin@marketplace'],
         ],
     ];
 
