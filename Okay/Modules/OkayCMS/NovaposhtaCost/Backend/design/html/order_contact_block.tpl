@@ -14,7 +14,7 @@
     >
         <div class="mb-1">
             <div class="heading_label">{$btr->order_np_city}</div>
-            <input type="text" name="novaposhta_city" class="fn_newpost_city_name form-control" autocomplete="off" value="{$novaposhta_delivery_data->city_name|escape}"{if !$isDoorDelivery} disabled{/if}>
+            <input type="text" name="novaposhta_city" class="fn_newpost_city_name fn_np_door_city form-control" autocomplete="off" value="{$novaposhta_delivery_data->city_name|escape}"{if !$isDoorDelivery} disabled{/if}>
         </div>
         <div class="mb-1">
             <div class="heading_label">{$btr->order_np_street}</div>
@@ -45,7 +45,7 @@
         
         <div class="mb-1">
             <div class="heading_label">{$btr->order_np_city}</div>
-            <input type="text" class="fn_newpost_city_name form-control" autocomplete="off" value="{$novaposhta_delivery_data->city_id|newpost_city}"{if $isDoorDelivery} disabled{/if}>
+            <input type="text" class="fn_newpost_city_name fn_np_warehouse_city form-control" autocomplete="off" value="{$novaposhta_delivery_data->city_id|newpost_city}"{if $isDoorDelivery} disabled{/if}>
         </div>
         <div class="mb-1">
             <div class="heading_label">{$btr->order_np_warehouse}
@@ -134,10 +134,11 @@
             let deliveryId = $(this).children(':selected').val();
             let doorDeliveryBlock = $('.fn_np_door_delivery_block');
             let warehouseDeliveryBlock = $('.fn_np_warehouse_delivery_block');
-            if (doorsDeliveries.includes(deliveryId)) {
+            // json_encode дає числа, а value у select — рядок.
+            if (doorsDeliveries.map(String).includes(String(deliveryId))) {
                 doorDeliveryBlock.show().find('input, select').attr('disabled', false);
                 warehouseDeliveryBlock.hide().find('input, select').attr('disabled', true);
-            } else if (warehousesDeliveries.includes(deliveryId)) {
+            } else if (warehousesDeliveries.map(String).includes(String(deliveryId))) {
                 doorDeliveryBlock.hide().find('input, select').attr('disabled', true);
                 warehouseDeliveryBlock.show().find('input, select').attr('disabled', false);
             }
@@ -146,72 +147,99 @@
         }
     });
 
-    setStreetAutocomplete({/literal}'{$novaposhta_delivery_data->city_id|escape}'{literal});
-    
-    // Автокомплит адреса из справочника Новой Почты
-    let streetAutocomplete = false;
-    $( ".fn_newpost_city_name" ).devbridgeAutocomplete({
+    // Місто адреси й місто відділення беруться з різних довідників НП (searchSettlements
+    // і getCities), тож автокомпліти окремі: спільний клас давав полю адреси
+    // автокомпліт відділень, і назва, область та вулиці лишались від попереднього міста.
+    const npDoorCityInput = $('.fn_np_door_city');
+    const npDoorStreetInput = $('.fn_newpost_street');
+    const npCityId = $('input[name="novaposhta_city_id"]');
+    const npDoorStreetName = $('input[name="novaposhta_street_name"]');
+    let npDoorCityRef = {/literal}'{$novaposhta_delivery_data->city_id|escape:'javascript'}'{literal};
+    let npDoorCityLabel = npDoorCityInput.val();
+    let npDoorStreetLabel = npDoorStreetInput.val();
+
+    // Підказки — дані з API НП, тож показуємо їх як текст.
+    function npSuggestionText(suggestion) {
+        return $('<div>').text(suggestion.value || '').html();
+    }
+
+    function npClearDoorStreet() {
+        npDoorStreetInput.val('');
+        npDoorStreetName.val('');
+        npDoorStreetLabel = '';
+    }
+
+    function setStreetAutocomplete(cityRef) {
+        if (!cityRef) {
+            return;
+        }
+        npDoorStreetInput.devbridgeAutocomplete({
+            serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_street'] + '?city_ref=' + encodeURIComponent(cityRef),
+            minChars: 1,
+            noCache: true,
+            // Не пропонуємо вулиці міста, яке вже стерли з поля.
+            onSearchStart: function() {
+                return npCityId.val() !== '' && npCityId.val() === npDoorCityRef;
+            },
+            onSelect: function(suggestion) {
+                npDoorStreetLabel = suggestion.value || '';
+                npDoorStreetName.val(npDoorStreetLabel);
+            },
+            formatResult: npSuggestionText
+        });
+    }
+
+    setStreetAutocomplete(npDoorCityRef);
+
+    npDoorCityInput.devbridgeAutocomplete({
         serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_city_for_door'],
-        minChars:1,
-        noCache: false,
+        minChars: 1,
+        noCache: true,
         onSelect: function(suggestion) {
-            $('input[name="novaposhta_city_id"]').val(suggestion.ref).trigger('change');
-            $('input[name=novaposhta_city_name]').val(suggestion.city);
-            $('input[name=novaposhta_area_name]').val(suggestion.area);
-            $('input[name=novaposhta_region_name]').val(suggestion.region);
-            if (suggestion.streets_availability) {
-                setStreetAutocomplete(suggestion.ref);
-            } else {
-                if(streetAutocomplete) {
-                    $(".fn_delivery_novaposhta input.fn_street").devbridgeAutocomplete().disable();
-                    streetAutocomplete = false;
-                }
+            const cityRef = suggestion.ref || '';
+            if (cityRef !== npDoorCityRef) {
+                npClearDoorStreet();
             }
+            npDoorCityRef = cityRef;
+            npDoorCityLabel = suggestion.value || '';
+            npCityId.val(cityRef).trigger('change');
+            $('input[name="novaposhta_city_name"]').val(suggestion.city || '');
+            $('input[name="novaposhta_area_name"]').val(suggestion.area || '');
+            $('input[name="novaposhta_region_name"]').val(suggestion.region || '');
+            setStreetAutocomplete(cityRef);
         },
-        formatResult: function(suggestion, currentValue) {
-            var reEscape = new RegExp( '(\\' + ['/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\'].join( '|\\' ) + ')', 'g' );
-            var pattern = '(' + currentValue.replace( reEscape, '\\$1' ) + ')';
-            return "<div style='text-align: left'>" + suggestion.value.replace( new RegExp( pattern, 'gi' ), '<strong>$1<\/strong>' ) + "<\/div>";
+        formatResult: npSuggestionText
+    });
+
+    // Місто, змінене вручну без вибору підказки, не має Ref — скидаємо все, що від нього залежить.
+    npDoorCityInput.on('input', function() {
+        if (npDoorCityInput.val() !== npDoorCityLabel) {
+            npDoorCityRef = '';
+            npCityId.val('');
+            $('input[name="novaposhta_city_name"], input[name="novaposhta_area_name"], input[name="novaposhta_region_name"]').val('');
+            npClearDoorStreet();
         }
     });
 
-    function setStreetAutocomplete(cityRef)
-    {
-        $(".fn_newpost_street").devbridgeAutocomplete({
-            serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_street'] + "?city_ref=" + cityRef,
-            minChars:1,
-            noCache: false,
-            onSearchStart: function(params) {
-                streetAutocomplete = true;
-            },
-            onSelect: function(suggestion){
-                $('input[name=novaposhta_street_name]').val(suggestion.value);
-            },
-            formatResult: function(suggestion, currentValue) {
-                var reEscape = new RegExp( '(\\' + ['/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\'].join( '|\\' ) + ')', 'g' );
-                var pattern = '(' + currentValue.replace( reEscape, '\\$1' ) + ')';
-                return "<div style='text-align: left'>" + suggestion.value.replace( new RegExp( pattern, 'gi' ), '<strong>$1<\/strong>' ) + "<\/div>";
-            }
-        });
-    }
-    
-    $( ".fn_newpost_city_name" ).devbridgeAutocomplete( {
+    npDoorStreetInput.on('input', function() {
+        if (npDoorStreetInput.val() !== npDoorStreetLabel) {
+            npDoorStreetName.val('');
+        }
+    });
+
+    $('.fn_np_warehouse_city').devbridgeAutocomplete({
         serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_city'],
         minChars: 1,
         maxHeight: 420,
         noCache: true,
         onSelect: function(suggestion) {
-            $('input[name="novaposhta_warehouse_id"]').val(''); //  очищаем выбранное отделение другого города
-            $('input[name="novaposhta_city_id"]').val(suggestion.data.ref);
+            $('input[name="novaposhta_warehouse_id"]').val('');
+            npCityId.val(suggestion.data.ref);
             showWarehouses(suggestion.data.ref);
         },
-        formatResult: function(suggestion, currentValue) {
-            var reEscape = new RegExp( '(\\' + ['/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\'].join( '|\\' ) + ')', 'g' );
-            var pattern = '(' + currentValue.replace( reEscape, '\\$1' ) + ')';
-            return "<span>" + suggestion.value.replace( new RegExp( pattern, 'gi' ), '<strong>$1<\/strong>' ) + "<\/span>";
-        }
-    } );
-    
+        formatResult: npSuggestionText
+    });
+
     {/literal}
     {if !empty($novaposhta_delivery_data->city_id)}
     showWarehouses('{$novaposhta_delivery_data->city_id|escape}');
