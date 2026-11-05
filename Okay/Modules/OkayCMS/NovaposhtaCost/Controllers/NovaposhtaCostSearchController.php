@@ -82,6 +82,8 @@ class NovaposhtaCostSearchController
                 $suggestion->area = $r->Area;
                 $suggestion->region = $r->Region;
                 $suggestion->streets_availability = $r->StreetsAvailability;
+                // Ref міста (getCities): за ним адмінка знаходить населений пункт для пошуку вулиць.
+                $suggestion->delivery_city = $r->DeliveryCity ?? '';
                 $suggestions[] = $suggestion;
             }
 

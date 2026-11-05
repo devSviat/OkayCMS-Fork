@@ -56,3 +56,4 @@ $lang['np_add_delivery_type'] = 'Add delivery type';
 $lang['np_delivery_types_head'] = 'Delivery types';
 $lang['np_warehouse_not_selected'] = 'Select warehouse';
 $lang['np_error_city_id'] = 'Empty city_id parameter. Select the destination city from the dropdown list.';
+$lang['np_city_choose_from_list'] = 'Pick the settlement from the suggestions, otherwise the order is saved without the city Ref and region.';

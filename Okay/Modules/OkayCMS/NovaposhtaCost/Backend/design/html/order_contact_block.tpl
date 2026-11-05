@@ -138,9 +138,11 @@
             if (doorsDeliveries.map(String).includes(String(deliveryId))) {
                 doorDeliveryBlock.show().find('input, select').attr('disabled', false);
                 warehouseDeliveryBlock.hide().find('input, select').attr('disabled', true);
+                npUseCityRef(true);
             } else if (warehousesDeliveries.map(String).includes(String(deliveryId))) {
                 doorDeliveryBlock.hide().find('input, select').attr('disabled', true);
                 warehouseDeliveryBlock.show().find('input, select').attr('disabled', false);
+                npUseCityRef(false);
             }
         } else {
             $('.fn_delivery_novaposhta').hide();
@@ -148,15 +150,36 @@
     });
 
     // Місто адреси й місто відділення беруться з різних довідників НП (searchSettlements
-    // і getCities), тож автокомпліти окремі: спільний клас давав полю адреси
-    // автокомпліт відділень, і назва, область та вулиці лишались від попереднього міста.
+    // і getCities), тож у кожного блоку свій автокомпліт і свій Ref. Спільне приховане
+    // novaposhta_city_id отримує Ref активного блоку: інакше місто, вибране в одному
+    // блоці, зберігалось би з назвою, вулицею чи відділенням з іншого.
     const npDoorCityInput = $('.fn_np_door_city');
+    const npWarehouseCityInput = $('.fn_np_warehouse_city');
     const npDoorStreetInput = $('.fn_newpost_street');
     const npCityId = $('input[name="novaposhta_city_id"]');
     const npDoorStreetName = $('input[name="novaposhta_street_name"]');
-    let npDoorCityRef = {/literal}'{$novaposhta_delivery_data->city_id|escape:'javascript'}'{literal};
-    let npDoorCityLabel = npDoorCityInput.val();
+    const npDoorCityFields = $('input[name="novaposhta_city_name"], input[name="novaposhta_area_name"], input[name="novaposhta_region_name"]');
+    const npStoredCityRef = {/literal}'{$novaposhta_delivery_data->city_id|escape:'javascript'}'{literal};
+
+    // Назву показують лише ті поля, для чиїх довідників Ref підходить.
+    let npDoorCityRef = npDoorCityInput.val() !== '' ? npStoredCityRef : '';
+    let npWarehouseCityRef = npWarehouseCityInput.val() !== '' ? npStoredCityRef : '';
+    let npDoorCity = npDoorSnapshot();
+    let npDoorCityEdited = false;
     let npDoorStreetLabel = npDoorStreetInput.val();
+    let npDoorStreetValue = npDoorStreetName.val();
+
+    function npDoorSnapshot() {
+        return {
+            ref: npDoorCityRef,
+            label: npDoorCityInput.val(),
+            fields: npDoorCityFields.map(function() { return $(this).val(); }).get()
+        };
+    }
+
+    function npUseCityRef(isDoor) {
+        npCityId.val(isDoor ? npDoorCityRef : npWarehouseCityRef);
+    }
 
     // Підказки — дані з API НП, тож показуємо їх як текст.
     function npSuggestionText(suggestion) {
@@ -167,23 +190,26 @@
         npDoorStreetInput.val('');
         npDoorStreetName.val('');
         npDoorStreetLabel = '';
+        npDoorStreetValue = '';
     }
 
-    function setStreetAutocomplete(cityRef) {
-        if (!cityRef) {
+    // Вулиці шукаються за Ref населеного пункту (searchSettlementStreets).
+    function setStreetAutocomplete(settlementRef) {
+        if (!settlementRef) {
             return;
         }
         npDoorStreetInput.devbridgeAutocomplete({
-            serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_street'] + '?city_ref=' + encodeURIComponent(cityRef),
+            serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_street'] + '?city_ref=' + encodeURIComponent(settlementRef),
             minChars: 1,
             noCache: true,
-            // Не пропонуємо вулиці міста, яке вже стерли з поля.
+            // Не пропонуємо вулиці міста, яке стерли з поля.
             onSearchStart: function() {
-                return npCityId.val() !== '' && npCityId.val() === npDoorCityRef;
+                return npDoorCityRef !== '';
             },
             onSelect: function(suggestion) {
-                npDoorStreetLabel = suggestion.value || '';
-                npDoorStreetName.val(npDoorStreetLabel);
+                npDoorStreetLabel = npDoorStreetInput.val();
+                npDoorStreetValue = suggestion.value || '';
+                npDoorStreetName.val(npDoorStreetValue);
             },
             formatResult: npSuggestionText
         });
@@ -191,60 +217,97 @@
 
     setStreetAutocomplete(npDoorCityRef);
 
+    // У частини замовлень city_id — Ref міста (getCities), з яким пошук вулиць порожній.
+    // Знаходимо Ref населеного пункту за назвою; збережений Ref не змінюється.
+    if (npDoorCityRef !== '' && npDoorCityInput.val() !== '') {
+        $.ajax({
+            url: okay.router['OkayCMS_NovaposhtaCost_find_city_for_door'],
+            data: { query: npDoorCityInput.val() },
+            dataType: 'json',
+            success: function(data) {
+                const match = (data.suggestions || []).find(function(s) {
+                    return s.ref === npDoorCityRef || s.delivery_city === npDoorCityRef;
+                });
+                if (match && match.ref !== npDoorCityRef) {
+                    setStreetAutocomplete(match.ref);
+                }
+            }
+        });
+    }
+
     npDoorCityInput.devbridgeAutocomplete({
         serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_city_for_door'],
         minChars: 1,
         noCache: true,
         onSelect: function(suggestion) {
             const cityRef = suggestion.ref || '';
-            if (cityRef !== npDoorCityRef) {
+            if (cityRef !== npDoorCity.ref) {
                 npClearDoorStreet();
             }
             npDoorCityRef = cityRef;
-            npDoorCityLabel = suggestion.value || '';
-            npCityId.val(cityRef).trigger('change');
             $('input[name="novaposhta_city_name"]').val(suggestion.city || '');
             $('input[name="novaposhta_area_name"]').val(suggestion.area || '');
             $('input[name="novaposhta_region_name"]').val(suggestion.region || '');
+            npDoorCity = npDoorSnapshot();
+            npDoorCityEdited = false;
+            npDoorCityInput.removeClass('error').next('.fn_np_city_hint').remove();
+            npUseCityRef(true);
+            npCityId.trigger('change');
             setStreetAutocomplete(cityRef);
         },
         formatResult: npSuggestionText
     });
 
-    // Місто, змінене вручну без вибору підказки, не має Ref — скидаємо все, що від нього залежить.
+    // Текст без вибору підказки не має Ref. Повернення до вибраного тексту відновлює місто.
     npDoorCityInput.on('input', function() {
-        if (npDoorCityInput.val() !== npDoorCityLabel) {
+        if (npDoorCityInput.val() === npDoorCity.label) {
+            npDoorCityRef = npDoorCity.ref;
+            npDoorCityFields.each(function(i) { $(this).val(npDoorCity.fields[i]); });
+            npDoorCityEdited = false;
+        } else {
             npDoorCityRef = '';
-            npCityId.val('');
-            $('input[name="novaposhta_city_name"], input[name="novaposhta_area_name"], input[name="novaposhta_region_name"]').val('');
-            npClearDoorStreet();
+            npDoorCityFields.val('');
+            npDoorCityEdited = true;
         }
+        npUseCityRef(true);
     });
 
     npDoorStreetInput.on('input', function() {
-        if (npDoorStreetInput.val() !== npDoorStreetLabel) {
-            npDoorStreetName.val('');
-        }
+        npDoorStreetName.val(npDoorStreetInput.val() === npDoorStreetLabel ? npDoorStreetValue : '');
     });
 
-    $('.fn_np_warehouse_city').devbridgeAutocomplete({
+    // Місто, змінене без вибору зі списку, не зберігаємо: у замовленні лишилося б
+    // місто без Ref і області. Старі замовлення без Ref це не зачіпає, поки поле не чіпали.
+    npDoorCityInput.closest('form').on('submit', function(e) {
+        if (!npDoorCityEdited || !npDoorCityInput.is(':visible')) {
+            return;
+        }
+        e.preventDefault();
+        npDoorCityInput.addClass('error').next('.fn_np_city_hint').remove();
+        $('<div class="fn_np_city_hint text_warning mt-q"></div>')
+            .text('{/literal}{$btr->np_city_choose_from_list|escape:'javascript'}{literal}')
+            .insertAfter(npDoorCityInput);
+        npDoorCityInput.trigger('focus');
+    });
+
+    npWarehouseCityInput.devbridgeAutocomplete({
         serviceUrl: okay.router['OkayCMS_NovaposhtaCost_find_city'],
         minChars: 1,
         maxHeight: 420,
         noCache: true,
         onSelect: function(suggestion) {
             $('input[name="novaposhta_warehouse_id"]').val('');
-            npCityId.val(suggestion.data.ref);
-            showWarehouses(suggestion.data.ref);
+            npWarehouseCityRef = suggestion.data.ref;
+            npUseCityRef(false);
+            showWarehouses(npWarehouseCityRef);
         },
         formatResult: npSuggestionText
     });
 
-    {/literal}
-    {if !empty($novaposhta_delivery_data->city_id)}
-    showWarehouses('{$novaposhta_delivery_data->city_id|escape}');
-    {/if}
-    {literal}
+    if (npWarehouseCityRef !== '') {
+        showWarehouses(npWarehouseCityRef);
+    }
+
     
     function showWarehouses(cityRef) {
         let selectedWarehouseRef = $('input[name="novaposhta_warehouse_id"]').val();
