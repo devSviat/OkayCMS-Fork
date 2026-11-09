@@ -54,7 +54,7 @@ class DeliveryPriceFromFormTest extends TestCase
 
     /**
      * Без серверного розрахунку модуль ціну доставки не змінює — лишається ціна з
-     * адмінки. Meest і Ukrposhta є лише в broken, тож перевіряються ті, що є.
+     * адмінки. Перевіряються модулі доставки, які є в цьому дереві.
      */
     public function testModulesWithoutServerPriceKeepDeliverySettings(): void
     {
