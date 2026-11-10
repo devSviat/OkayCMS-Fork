@@ -200,9 +200,8 @@ PHPCompatibility тут немає: стабільна 9.3.5 не знає PHP 8
 | `ArrayToFirstClassCallable` | Smarty бере ім'я фільтра з callable-масиву; замикання лишається без імені |
 | `SafeDeclareStrictTypes` | міняє приведення скалярів у кожному виклику з файлу |
 
-`backend/design` (сторонній файловий менеджер) у `skip`. Модулі Sviat у broken теж під правилами: ті, що
-мають репозиторій у лабі, правляться там і приходять уже пройденими. Дослідження з прогонами —
-`docs/superpowers/specs/2026-10-24-rector-modernization-design.md` у broken.
+`backend/design` (сторонній файловий менеджер) у `skip`. Модулі Sviat, що мають власний репозиторій,
+проходять ці правила там і приходять уже пройденими.
 
 ## `dev/bin/smoke.sh`
 

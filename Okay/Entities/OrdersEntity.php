@@ -543,7 +543,7 @@ class OrdersEntity extends Entity
                 OR o.last_name LIKE :keyword_last_name_{$keyNum}
                 OR REPLACE(o.phone, '-', '') LIKE :keyword_phone_{$keyNum}
                 OR o.email LIKE :keyword_email_{$keyNum}
-                OR o.id IN (SELECT order_id FROM __purchases WHERE product_name LIKE :keyword_product_name_{$keyNum} OR variant_name LIKE :keyword_product_name_{$keyNum})
+                OR o.id IN (SELECT order_id FROM __purchases WHERE product_name LIKE :keyword_product_name_{$keyNum} OR variant_name LIKE :keyword_product_name_{$keyNum} OR sku LIKE :keyword_sku_{$keyNum})
             )");
 
             $this->select->bindValues([
@@ -554,6 +554,7 @@ class OrdersEntity extends Entity
                 "keyword_email_{$keyNum}"        => '%' . $keyword . '%',
                 "keyword_product_name_{$keyNum}" => '%' . $keyword . '%',
                 "keyword_product_name_{$keyNum}" => '%' . $keyword . '%',
+                "keyword_sku_{$keyNum}"          => '%' . $keyword . '%',
             ]);
         }
     }
