@@ -7,8 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>{$btr->auth_title|escape}</title>
 
-    <link href="design/css/okay.css" rel="stylesheet" type="text/css" />
-    <link href="design/css/grid.css" rel="stylesheet" type="text/css" />
+    {* Через {css}: nginx кешує backend/design назавжди, а скомпільований файл має нове ім'я з кожною зміною.
+       Прямий <link> без версії лишав у браузері старий okay.css після деплою. *}
+    {css file="okay.css" admin=true}
+    {css file="grid.css" admin=true}
     <link rel="icon" href="design/images/favicon.png" type="image/x-icon">
     <script src="design/js/jquery/jquery.js?v=4.0.0"></script>
 </head>
@@ -85,11 +87,11 @@
                                             {/if}
                                         </div>
                                     {/if}
-                                    <p class="text_grey font_12 mb-1">{$btr->auth_2fa_recovery_hint|escape}</p>
+                                    <p class="auth_2fa_hint">{$btr->auth_2fa_recovery_hint|escape}</p>
                                     <div class="auth_buttons">
-                                        {* Окрема форма: інакше Enter у полі коду брав би першу кнопку — цю — і скасовував вхід *}
-                                        <button type="submit" form="fn_cancel_2fa" class="auth_buttons__recovery link px-0 mb-1">{$btr->auth_2fa_back|escape}</button>
                                         <button type="submit" value="login" class="auth_buttons__login btn btn_blue btn_big btn-block" tabindex="2">{$btr->auth_2fa_submit|escape}</button>
+                                        {* Окрема форма: Enter у полі коду надсилає лише форму коду, а не скасовує вхід *}
+                                        <button type="submit" form="fn_cancel_2fa" class="auth_2fa_back" tabindex="3">← {$btr->auth_2fa_back|escape}</button>
                                     </div>
                                 {else}
                                     <h1 class="auth_heading heading-divider">{$btr->auth_form_login_admin|escape}</h1>
