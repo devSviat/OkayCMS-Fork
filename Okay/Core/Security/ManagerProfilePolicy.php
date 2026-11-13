@@ -113,6 +113,24 @@ class ManagerProfilePolicy
         return (int)$target->id !== (int)$viewer->id && $this->canManage($viewer, $target);
     }
 
+    /**
+     * Що ajax/update_object.php може записати менеджеру, і лише йому самому: порядок
+     * меню або його закріплення. Там немає covers() і пароля, тож усе інше — через ManagerAdmin.
+     *
+     * @return array<string, mixed>|null null — нічого з дозволеного не прийшло
+     */
+    public static function ownMenuUpdate(mixed $menu, mixed $values): ?array
+    {
+        if (is_array($menu) && $menu !== []) {
+            return ['menu' => $menu];
+        }
+        if (is_array($values) && array_key_exists('menu_status', $values)) {
+            return ['menu_status' => (int)(bool)$values['menu_status']];
+        }
+
+        return null;
+    }
+
     public function canSeeSessionsOf(object $viewer, int $targetId): bool
     {
         return $targetId === (int)$viewer->id || $this->managers->access('manager_sessions', $viewer);
