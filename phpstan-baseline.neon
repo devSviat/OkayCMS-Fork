@@ -3199,6 +3199,12 @@ parameters:
 			path: backend/ajax/export_orders.php
 
 		-
+			message: '#^Variable \$manager might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: backend/ajax/export_orders.php
+
+		-
 			message: '#^Variable \$request might not be defined\.$#'
 			identifier: variable.undefined
 			count: 5

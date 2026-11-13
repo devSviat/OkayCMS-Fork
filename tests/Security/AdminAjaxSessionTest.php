@@ -49,6 +49,15 @@ class AdminAjaxSessionTest extends TestCase
         $this->assertStringContainsString('session_id:', $call);
     }
 
+    /** Експорт замовлень віддає дані покупців, тож мало права на експорт товарів: потрібне й право на замовлення. */
+    public function testOrdersExportNeedsTheOrdersRight(): void
+    {
+        $script = $this->source('backend/ajax/export_orders.php');
+
+        $this->assertStringContainsString("\$managers->access('orders', \$manager)", $script);
+        $this->assertStringContainsString("\$managers->access('export', \$manager)", $script);
+    }
+
     private function source(string $path): string
     {
         return (string) file_get_contents(dirname(__DIR__, 2) . '/' . $path);
