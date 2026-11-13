@@ -50,7 +50,8 @@ $managersEntity = $entityFactory->get(ManagersEntity::class);
 /** @var CurrenciesEntity $currenciesEntity */
 $currenciesEntity = $entityFactory->get(CurrenciesEntity::class);
 
-if (!$managers->access('export', $managersEntity->get($_SESSION['admin']))) {
+// Тут дані покупців, тож права на експорт товарів мало: потрібне й право на замовлення.
+if (!$managers->access('export', $manager) || !$managers->access('orders', $manager)) {
     exit();
 }
 
