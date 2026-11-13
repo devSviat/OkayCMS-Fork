@@ -19,6 +19,7 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Okay\Core\Validator;
 use Okay\Entities\ManagersEntity;
+use Okay\Core\Security\ManagerPasswordRule;
 
 /**
  * Профіль менеджера: вкладки «Профіль», «Безпека» (пароль, сесії) і «Права
@@ -30,7 +31,6 @@ use Okay\Entities\ManagersEntity;
  */
 class ManagerAdmin extends IndexAdmin
 {
-    public const PASSWORD_MIN_LENGTH = 8;
 
     private const string TAB_PROFILE = 'profile';
     private const string TAB_SECURITY = 'security';
@@ -112,7 +112,7 @@ class ManagerAdmin extends IndexAdmin
         $this->design->assign('current_session_id', $current !== null ? (int)$current->id : 0);
         $this->design->assign('reauth_fresh', $reauth->isFresh());
         $this->design->assign('reauth_expires_at', $reauth->expiresAt());
-        $this->design->assign('password_min_length', self::PASSWORD_MIN_LENGTH);
+        $this->design->assign('password_min_length', ManagerPasswordRule::MIN_LENGTH);
         $this->design->assign('btr_languages', $btrLanguages);
         $this->design->assign('permission', $managerMenu->getPermissionMenu($viewer, $this->design->getVar('btr')));
 
@@ -362,16 +362,8 @@ class ManagerAdmin extends IndexAdmin
     ): void {
         $password = $this->stringPost('new_password');
 
-        if (trim($password) === '') {
-            $this->postRedirectGet->storeMessageError('password_empty');
-            return;
-        }
-        if (mb_strlen($password) < self::PASSWORD_MIN_LENGTH) {
-            $this->postRedirectGet->storeMessageError('password_short');
-            return;
-        }
-        if (!hash_equals($password, $this->stringPost('new_password_check'))) {
-            $this->postRedirectGet->storeMessageError('password_mismatch');
+        if (($problem = ManagerPasswordRule::problem($password, $this->stringPost('new_password_check'))) !== null) {
+            $this->postRedirectGet->storeMessageError($problem);
             return;
         }
 
@@ -421,10 +413,8 @@ class ManagerAdmin extends IndexAdmin
             $error = 'login_exists';
         } elseif (!$validator->isEmail($email)) {
             $error = 'email_invalid';
-        } elseif (trim($password) === '' || mb_strlen($password) < self::PASSWORD_MIN_LENGTH) {
-            $error = 'password_short';
-        } elseif (!hash_equals($password, $this->stringPost('new_password_check'))) {
-            $error = 'password_mismatch';
+        } elseif (($problem = ManagerPasswordRule::problem($password, $this->stringPost('new_password_check'))) !== null) {
+            $error = $problem;
         } elseif (!$reauth->isFresh()) {
             $error = ManagerReauth::REQUIRED;
         }

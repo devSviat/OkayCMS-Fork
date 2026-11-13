@@ -311,12 +311,12 @@ class ManagerProfileAccessTest extends TestCase
      */
     public function testAjaxWritesOnlyTheMenuLayout(): void
     {
-        $policy = ManagerProfilePolicy::class;
+        $policy = new ManagerProfilePolicy(new Managers());
 
-        $this->assertSame(['menu' => ['orders' => ['x' => 'OrdersAdmin']]], $policy::ownMenuUpdate(['orders' => ['x' => 'OrdersAdmin']], ['password' => 'p']));
-        $this->assertSame(['menu_status' => 1], $policy::ownMenuUpdate(null, ['menu_status' => '1', 'password' => 'p']));
-        $this->assertSame(['menu_status' => 0], $policy::ownMenuUpdate(null, ['menu_status' => '0']));
-        $this->assertNull($policy::ownMenuUpdate(null, ['password' => 'p', 'permissions' => '']));
-        $this->assertNull($policy::ownMenuUpdate('', 'menu_status'));
+        $this->assertSame(['menu' => ['orders' => ['x' => 'OrdersAdmin']]], $policy->ownMenuUpdate(['orders' => ['x' => 'OrdersAdmin']], ['password' => 'p']));
+        $this->assertSame(['menu_status' => 1], $policy->ownMenuUpdate(null, ['menu_status' => '1', 'password' => 'p']));
+        $this->assertSame(['menu_status' => 0], $policy->ownMenuUpdate(null, ['menu_status' => '0']));
+        $this->assertNull($policy->ownMenuUpdate(null, ['password' => 'p', 'permissions' => '']));
+        $this->assertNull($policy->ownMenuUpdate('', 'menu_status'));
     }
 }

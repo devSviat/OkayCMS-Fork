@@ -119,7 +119,7 @@ class ManagerProfilePolicy
      *
      * @return array<string, mixed>|null null — нічого з дозволеного не прийшло
      */
-    public static function ownMenuUpdate(mixed $menu, mixed $values): ?array
+    public function ownMenuUpdate(mixed $menu, mixed $values): ?array
     {
         if (is_array($menu) && $menu !== []) {
             return ['menu' => $menu];

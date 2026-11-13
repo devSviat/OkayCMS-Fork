@@ -131,7 +131,8 @@ switch ($object) {
         }
         break;
     case 'managers':
-        $values = \Okay\Core\Security\ManagerProfilePolicy::ownMenuUpdate($request->post('manager_menu'), $values);
+        $values = $DI->get(\Okay\Core\Security\ManagerProfilePolicy::class)
+            ->ownMenuUpdate($request->post('manager_menu'), $values);
         if ($values !== null) {
             $entity = $entityFactory->get(\Okay\Entities\ManagersEntity::class);
             $id = (int)$manager->id;

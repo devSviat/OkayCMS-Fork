@@ -15,6 +15,7 @@ use Okay\Core\Security\ManagerTwoFactor;
 use Okay\Core\Validator;
 use Okay\Entities\LessonsEntity;
 use Okay\Entities\ManagersEntity;
+use Okay\Core\Security\ManagerPasswordRule;
 
 class AuthAdmin extends IndexAdmin
 {
@@ -97,7 +98,7 @@ class AuthAdmin extends IndexAdmin
 
         if ($recoveryIsValid) {
             $this->design->assign('recovery_mod', true);
-            $this->design->assign('password_min_length', ManagerAdmin::PASSWORD_MIN_LENGTH);
+            $this->design->assign('password_min_length', ManagerPasswordRule::MIN_LENGTH);
             $this->design->assign('recovery_code', $code);
             $this->design->assign('recovery_two_factor', $twoFactor->isEnabled((int)$managerToRecovery->id));
 
@@ -105,13 +106,10 @@ class AuthAdmin extends IndexAdmin
                 $new_password = $this->request->post('new_password');
                 $new_password = is_string($new_password) ? $new_password : '';
                 $new_password_check = $this->request->post('new_password_check');
+                $new_password_check = is_string($new_password_check) ? $new_password_check : '';
 
-                if (trim($new_password) === '') {
-                    $this->design->assign('error_message', 'password_empty');
-                } elseif (mb_strlen($new_password) < ManagerAdmin::PASSWORD_MIN_LENGTH) {
-                    $this->design->assign('error_message', 'password_short');
-                } elseif ($new_password !== $new_password_check) {
-                    $this->design->assign('error_message', 'password_wrong');
+                if (($problem = ManagerPasswordRule::problem($new_password, $new_password_check)) !== null) {
+                    $this->design->assign('error_message', $problem);
                 } else {
                     // Менеджер береться з токена, а не з POST: інакше власник
                     // будь-якого валідного коду міг змінити пароль кому завгодно.
