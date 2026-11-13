@@ -203,7 +203,7 @@
                                                                 <div class="mt-q font_12"><span class="text_grey">{$btr->order_option|escape}</span> {$purchase->variant_name|escape}</div>
                                                             {/if}
                                                             {if $purchase->sku}
-                                                                <div class="mt-q font_12"><span class="text_grey">{$btr->general_sku|escape}:</span> {$purchase->sku|default:"&mdash;"}</div>
+                                                                <div class="mt-q font_12"><span class="text_grey">{$btr->general_sku|escape}:</span> {$purchase->sku|escape|default:"&mdash;"}</div>
                                                             {/if}
                                                         {else}
                                                             <div class="text_grey text_600">{$purchase->product_name|escape}</div>
@@ -211,7 +211,7 @@
                                                                 <div class="mt-q font_12"><span class="text_grey">{$btr->order_option|escape}</span> {$purchase->variant_name|escape}</div>
                                                             {/if}
                                                             {if $purchase->sku}
-                                                                <div class="mt-q font_12"><span class="text_grey">{$btr->general_sku|escape}:</span> {$purchase->sku|default:"&mdash;"}</div>
+                                                                <div class="mt-q font_12"><span class="text_grey">{$btr->general_sku|escape}:</span> {$purchase->sku|escape|default:"&mdash;"}</div>
                                                             {/if}
                                                         {/if}
                                                         <div class="hidden-lg-up mt-q">

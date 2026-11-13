@@ -373,7 +373,7 @@
                                                     <div class="purchases_body_items">
                                                         <div class="purchases_body_item">
                                                             <div class="purchases_bodyng purchases_table_orders_num">{$purchase@iteration}</div>
-                                                            <div class="purchases_bodyng purchases_table_orders_sku">{$purchase->sku|default:"&mdash;"}</div>
+                                                            <div class="purchases_bodyng purchases_table_orders_sku">{$purchase->sku|escape|default:"&mdash;"}</div>
                                                             <div class="purchases_bodyng purchases_table_orders_name">
                                                                 {$purchase->product_name|escape}
                                                                 {if $purchase->variant_name}({$purchase->variant_name|escape}){/if}
