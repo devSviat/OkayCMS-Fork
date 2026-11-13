@@ -323,8 +323,12 @@ robots.txt
     
     $('.fn_execute_migrations').on('click', function () {
         $.ajax({
+            type: 'post',
             dataType: 'json',
             url: "{url controller='OkayCMS.AutoDeploy.AutoDeployAdmin@executeMigrations'}",
+            data: {
+                session_id: '{$smarty.session.id}',
+            },
             success: function (data) {
                 $('.fn_new_migrations').hide();
                 $('.fn_all_migrations_executed').show();
