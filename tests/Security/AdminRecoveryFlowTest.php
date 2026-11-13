@@ -24,47 +24,29 @@ class AdminRecoveryFlowTest extends TestCase
         $this->assertStringContainsString('$result->send = true;', $source);
     }
 
-    public function testEmptyPasswordIsRejectedBeforeLogin()
-    {
-        $source = $this->source();
-
-        $this->assertStringContainsString("trim(\$new_password) === ''", $source);
-        $this->assertStringContainsString("\$this->design->assign('error_message', 'password_empty');", $source);
-
-        $guard = strpos($source, "trim(\$new_password) === ''");
-        $login = strpos($source, '$managerSessions->signIn($manager)');
-
-        $this->assertIsInt($guard);
-        $this->assertIsInt($login);
-        $this->assertLessThan($login, $guard);
-    }
-
     /**
-     * Відновлення через лист — третій шлях змінити пароль. Мінімум той самий, що й
-     * на сторінці менеджера, інакше саме тут ставили б пароль з одного символу.
+     * Порожній, короткий і непідтверджений пароль відсікає ManagerPasswordRule
+     * (ManagerPasswordRuleTest), а тут — що відновлення застосовує його до запису
+     * пароля й до входу, і що шаблон показує кожну з помилок.
      */
-    public function testShortPasswordIsRejectedBeforeItIsSaved()
+    public function testRecoveryChecksThePasswordRuleBeforeSavingOrSigningIn()
     {
         $source = $this->source();
 
-        $guard = strpos($source, 'mb_strlen($new_password) < ManagerAdmin::PASSWORD_MIN_LENGTH');
+        $rule = strpos($source, 'ManagerPasswordRule::problem($new_password, $new_password_check)');
         $save = strpos($source, "\$managersEntity->update((int)\$manager->id, ['password' => \$new_password]);");
+        $login = strpos($source, '$managerSessions->signIn($manager');
 
-        $this->assertIsInt($guard);
+        $this->assertIsInt($rule);
         $this->assertIsInt($save);
-        $this->assertLessThan($save, $guard);
-        $this->assertStringContainsString("\$this->design->assign('error_message', 'password_short');", $source);
+        $this->assertIsInt($login);
+        $this->assertLessThan($save, $rule);
+        $this->assertLessThan($login, $rule);
 
         $template = (string) file_get_contents(dirname(__DIR__, 2) . '/backend/design/html/auth.tpl');
-        $this->assertStringContainsString("\$error_message == 'password_short'", $template);
-    }
-
-    public function testMismatchedConfirmationIsRejected()
-    {
-        $source = $this->source();
-
-        $this->assertStringContainsString('$new_password !== $new_password_check', $source);
-        $this->assertStringContainsString("\$this->design->assign('error_message', 'password_wrong');", $source);
+        foreach (['password_empty', 'password_short', 'password_mismatch'] as $code) {
+            $this->assertStringContainsString("\$error_message == '{$code}'", $template);
+        }
     }
 
     /**
@@ -101,7 +83,7 @@ class AdminRecoveryFlowTest extends TestCase
 
         $this->assertStringContainsString('name="code"', $template);
         $this->assertStringContainsString("\$error_message == 'password_empty'", $template);
-        $this->assertStringContainsString("\$error_message == 'password_wrong'", $template);
+        $this->assertStringContainsString("\$error_message == 'password_mismatch'", $template);
     }
 
     public function testRecoveryJsNoLongerRevealsWhetherTheEmailIsAnAdmin()

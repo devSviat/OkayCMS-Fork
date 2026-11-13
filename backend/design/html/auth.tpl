@@ -58,7 +58,7 @@
                                                 {$btr->auth_form_new_pass|escape}
                                             {elseif $error_message == 'password_short'}
                                                 {$btr->manager_password_short|escape} {$password_min_length|escape}
-                                            {elseif $error_message == 'password_wrong'}
+                                            {elseif $error_message == 'password_mismatch'}
                                                 {$btr->auth_form_pass_mismatch|escape}
                                             {elseif $error_message == 'code_limit'}
                                                 {$btr->auth_2fa_limit|escape}
