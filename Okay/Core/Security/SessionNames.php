@@ -145,6 +145,8 @@ class SessionNames
         try {
             session_name(self::BACKEND);
             session_id($cookieSessionId);
+            // Цей session_start теж може запустити прибирання, ще до startFrontend().
+            self::applyIdleLifetime();
 
             // read_and_close — не тримаємо лок. use_cookies => false — жодного
             // Set-Cookie бекендової куки в запиті вітрини. use_strict_mode —
@@ -263,6 +265,7 @@ class SessionNames
 
         session_name($name);
         session_set_cookie_params(self::cookieParams());
+        self::applyIdleLifetime();
 
         // Нова кука у відповідь на міжсайтовий POST затерла б сесію відвідувача.
         // Сама сесія запиту потрібна - її читає перевірка токена; зайва лише кука.
@@ -275,6 +278,16 @@ class SessionNames
         // новим. Інакше підкинутий заздалегідь id (фіксація сесії) ставав би
         // сесією жертви. У коді, а не в php.ini, — щоб діяло на будь-якому хостингу.
         session_start(['use_strict_mode' => true]);
+    }
+
+    /**
+     * Вітрина й адмінка ділять теку сесій, а прибирання PHP видаляє в ній усе, старше за межу
+     * процесу, що прибирає. Типові 24 хвилини вітрини стирали сесію неактивного менеджера, тож
+     * межа одна для всіх точок входу — та, після якої сесію відкидає й реєстр ManagerSessions.
+     */
+    private static function applyIdleLifetime(): void
+    {
+        ini_set('session.gc_maxlifetime', (string) ManagerSessions::IDLE_SECONDS);
     }
 
     /**
