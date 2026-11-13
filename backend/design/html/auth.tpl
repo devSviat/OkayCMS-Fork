@@ -39,7 +39,7 @@
                                         <span class="input-group-addon">
                                             {include file='svg_icon.tpl' svgId='pass_icon'}
                                         </span>
-                                        <input type="password" name="new_password" value="" autocomplete="new-password" autofocus="" tabindex="1" class="form-control" placeholder="{$btr->auth_form_pass|escape}">
+                                        <input type="password" name="new_password" value="" autocomplete="new-password" autofocus="" tabindex="1" minlength="{$password_min_length|escape}" class="form-control" placeholder="{$btr->auth_form_pass|escape}">
                                     </div>
                                     <div class="input-group mb-1">
                                         <span class="input-group-addon">
@@ -56,6 +56,8 @@
                                         <div class="mb-1 error_box" role="alert">
                                             {if $error_message == 'password_empty'}
                                                 {$btr->auth_form_new_pass|escape}
+                                            {elseif $error_message == 'password_short'}
+                                                {$btr->manager_password_short|escape} {$password_min_length|escape}
                                             {elseif $error_message == 'password_wrong'}
                                                 {$btr->auth_form_pass_mismatch|escape}
                                             {elseif $error_message == 'code_limit'}
