@@ -10,6 +10,7 @@ use Okay\Core\EntityFactory;
 use Okay\Core\Phone;
 use Okay\Core\QueryFactory;
 use Okay\Core\Request;
+use Okay\Core\Security\HtmlFragmentSanitizer;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Entities\DeliveriesEntity;
 use Okay\Entities\DiscountsEntity;
@@ -720,10 +721,9 @@ class BackendOrderHistoryHelper
             $managers = $managersEntity->mappedBy('id')->find();
             $orderHistory = $this->orderHistoryEntity->find(['order_id' => $orderId]);
 
+            $sanitizer = new HtmlFragmentSanitizer();
             foreach ($orderHistory as $item) {
-                // text у ok_order_history nullable, а strip_tags(null) з 8.1 — deprecated:
-                // при display_errors вивід іде перед заголовками, і сторінка їх уже не віддасть.
-                $item->text = strip_tags((string) $item->text,'<a><p><b><u><s><strong><i><br><span><div><ol><ul><li><table><tbody><tr><td></td><blockquote>');
+                $item->text = $sanitizer->sanitize($item->text);
                 if ($item->manager_id && isset($managers[$item->manager_id])) {
                     $item->manager_name = $managers[$item->manager_id]->login;
                 }
@@ -742,7 +742,9 @@ class BackendOrderHistoryHelper
             $managersEntity = $this->entityFactory->get(ManagersEntity::class);
             $managers = $managersEntity->mappedBy('id')->find();
             
+            $sanitizer = new HtmlFragmentSanitizer();
             foreach ($this->orderHistoryEntity->find(['order_id' => $ordersIds]) as $item) {
+                $item->text = $sanitizer->sanitize($item->text);
                 if ($item->manager_id && isset($managers[$item->manager_id])) {
                     $item->manager_name = $managers[$item->manager_id]->login;
                 }
