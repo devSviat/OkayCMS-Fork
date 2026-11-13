@@ -35,6 +35,20 @@ class AdminAjaxSessionTest extends TestCase
         $this->assertLessThan(strpos($script, '$orderLabelsEntity->addOrderLabels('), $guard);
     }
 
+    /** Міграції виконують SQL з теки модуля, тож лише POST, який перевіряється на токен у backend/index.php. */
+    public function testAutoDeployMigrationsRunOnlyOnPost(): void
+    {
+        $controller = $this->source('Okay/Modules/OkayCMS/AutoDeploy/Backend/Controllers/AutoDeployAdmin.php');
+        $method = substr($controller, strpos($controller, 'public function executeMigrations'));
+        $method = substr($method, 0, strpos($method, '$deployHelper->executeMigrations()'));
+        $this->assertStringContainsString("\$this->request->method('post')", $method);
+
+        $template = $this->source('Okay/Modules/OkayCMS/AutoDeploy/Backend/design/html/auto_deploy.tpl');
+        $call = substr($template, strpos($template, "AutoDeployAdmin@executeMigrations") - 120, 400);
+        $this->assertStringContainsString("type: 'post'", $call);
+        $this->assertStringContainsString('session_id:', $call);
+    }
+
     private function source(string $path): string
     {
         return (string) file_get_contents(dirname(__DIR__, 2) . '/' . $path);
