@@ -97,15 +97,19 @@ class AuthAdmin extends IndexAdmin
 
         if ($recoveryIsValid) {
             $this->design->assign('recovery_mod', true);
+            $this->design->assign('password_min_length', ManagerAdmin::PASSWORD_MIN_LENGTH);
             $this->design->assign('recovery_code', $code);
             $this->design->assign('recovery_two_factor', $twoFactor->isEnabled((int)$managerToRecovery->id));
 
             if ($this->request->method('post')){
                 $new_password = $this->request->post('new_password');
+                $new_password = is_string($new_password) ? $new_password : '';
                 $new_password_check = $this->request->post('new_password_check');
 
                 if (trim($new_password) === '') {
                     $this->design->assign('error_message', 'password_empty');
+                } elseif (mb_strlen($new_password) < ManagerAdmin::PASSWORD_MIN_LENGTH) {
+                    $this->design->assign('error_message', 'password_short');
                 } elseif ($new_password !== $new_password_check) {
                     $this->design->assign('error_message', 'password_wrong');
                 } else {
