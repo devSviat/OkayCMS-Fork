@@ -1,11 +1,16 @@
 <?php
 
 use Okay\Core\OkayContainer\OkayContainer;
+use Okay\Core\Security\EnvSecrets;
 use Okay\Core\Security\ManagerSessions;
 use Okay\Core\Security\SessionNames;
 
 require_once __DIR__ . '/constants.php';
 require_once __DIR__ . '/functions.php';
+
+// До першого шаблону: інакше {$smarty.server.…} віддасть паролі з оточення.
+EnvSecrets::scrub($_SERVER, $_ENV);
+
 // Не require_once: повторне підключення (тести, вкладений вхід) отримало б
 // true замість масиву. Самі конфіги лише повертають масиви.
 $services   = require __DIR__ . '/services.php';
