@@ -39,6 +39,26 @@ class AdminRecoveryFlowTest extends TestCase
         $this->assertLessThan($login, $guard);
     }
 
+    /**
+     * Відновлення через лист — третій шлях змінити пароль. Мінімум той самий, що й
+     * на сторінці менеджера, інакше саме тут ставили б пароль з одного символу.
+     */
+    public function testShortPasswordIsRejectedBeforeItIsSaved()
+    {
+        $source = $this->source();
+
+        $guard = strpos($source, 'mb_strlen($new_password) < ManagerAdmin::PASSWORD_MIN_LENGTH');
+        $save = strpos($source, "\$managersEntity->update((int)\$manager->id, ['password' => \$new_password]);");
+
+        $this->assertIsInt($guard);
+        $this->assertIsInt($save);
+        $this->assertLessThan($save, $guard);
+        $this->assertStringContainsString("\$this->design->assign('error_message', 'password_short');", $source);
+
+        $template = (string) file_get_contents(dirname(__DIR__, 2) . '/backend/design/html/auth.tpl');
+        $this->assertStringContainsString("\$error_message == 'password_short'", $template);
+    }
+
     public function testMismatchedConfirmationIsRejected()
     {
         $source = $this->source();
