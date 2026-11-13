@@ -144,7 +144,9 @@
             intro.oncomplete(function() {
                 $.ajax({
                     url: 'ajax/lesson_done.php',
+                    type: 'POST',
                     data: {
+                        session_id: '{$smarty.session.id|escape:'javascript'}',
                         lesson: 1
                     }
                 })
@@ -284,7 +286,9 @@
             intro.oncomplete(function() {
                 $.ajax({
                     url: 'ajax/lesson_done.php',
+                    type: 'POST',
                     data: {
+                        session_id: '{$smarty.session.id|escape:'javascript'}',
                         lesson: 2
                     }
                 })
@@ -480,7 +484,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 3
                 }
             })
@@ -680,7 +686,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 4
                 }
             })
@@ -761,7 +769,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 9
                 }
             })
@@ -905,7 +915,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 10
                 }
             })
@@ -1041,7 +1053,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 11
                 }
             })
@@ -1132,7 +1146,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 8
                 }
             })
@@ -1214,7 +1230,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 7
                 }
             })
@@ -1275,7 +1293,9 @@
         intro.oncomplete(function() {
             $.ajax({
                 url: 'ajax/lesson_done.php',
+                type: 'POST',
                 data: {
+                    session_id: '{$smarty.session.id|escape:'javascript'}',
                     lesson: 12
                 }
             })
@@ -1449,7 +1469,9 @@
             intro.oncomplete(function() {
                 $.ajax({
                     url: 'ajax/lesson_done.php',
+                    type: 'POST',
                     data: {
+                        session_id: '{$smarty.session.id|escape:'javascript'}',
                         lesson: 5
                     }
                 })
@@ -1601,7 +1623,9 @@
             intro.oncomplete(function() {
                 $.ajax({
                     url: 'ajax/lesson_done.php',
+                    type: 'POST',
                     data: {
+                        session_id: '{$smarty.session.id|escape:'javascript'}',
                         lesson: 6
                     }
                 })
