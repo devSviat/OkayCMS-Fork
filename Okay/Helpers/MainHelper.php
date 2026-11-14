@@ -4,6 +4,7 @@
 namespace Okay\Helpers;
 
 
+use Okay\Core\StorefrontPaymentMethods;
 use Okay\Core\Cart;
 use Okay\Core\Comparison;
 use Okay\Core\Config;
@@ -577,7 +578,7 @@ class MainHelper
 
         /** @var PaymentsEntity $paymentsEntity */
         $paymentsEntity = $entityFactory->get(PaymentsEntity::class);
-        $paymentMethodImages = $paymentsEntity->find(['enabled' => 1]);
+        $paymentMethodImages = StorefrontPaymentMethods::withoutSettings($paymentsEntity->find(['enabled' => 1]));
         return ExtenderFacade::execute(__METHOD__, $paymentMethodImages, func_get_args());
     }
 

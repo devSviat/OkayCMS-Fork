@@ -4,6 +4,7 @@
 namespace Okay\Helpers;
 
 
+use Okay\Core\StorefrontPaymentMethods;
 use Okay\Core\EntityFactory;
 use Okay\Core\Modules\Extender\ExtenderFacade;
 use Okay\Core\Modules\Module;
@@ -38,7 +39,7 @@ class PaymentsHelper
         /** @var PaymentsEntity $paymentsEntity */
         $paymentsEntity = $this->entityFactory->get(PaymentsEntity::class);
 
-        $payments = $paymentsEntity->mappedBy('id')->find(['enabled'=>1]);
+        $payments = StorefrontPaymentMethods::withoutSettings($paymentsEntity->mappedBy('id')->find(['enabled'=>1]));
         return ExtenderFacade::execute(__METHOD__, $payments, func_get_args());
     }
 

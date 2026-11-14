@@ -5,6 +5,7 @@ namespace Okay\Helpers;
 
 
 use Okay\Core\EntityFactory;
+use Okay\Core\StorefrontPaymentMethods;
 use Okay\Core\Phone;
 use Okay\Core\UserReferer\UserReferer;
 use Okay\Entities\DeliveriesEntity;
@@ -88,8 +89,7 @@ class OrdersHelper
         $paymentMethod = null;
 
         if ($order->payment_method_id) {
-            $paymentMethod = $paymentsEntity->get((int)$order->payment_method_id);
-            $paymentMethod->settings = unserialize($paymentMethod->settings, ['allowed_classes' => false]);
+            $paymentMethod = StorefrontPaymentMethods::withoutSettings($paymentsEntity->get((int)$order->payment_method_id) ?: null);
         }
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethod, func_get_args());
@@ -105,11 +105,43 @@ class OrdersHelper
             'enabled' => 1,
         ]);
 
-        foreach ($paymentMethods as $paymentMethod) {
-            $paymentMethod->settings = unserialize($paymentMethod->settings, ['allowed_classes' => false]);
-        }
+        StorefrontPaymentMethods::withoutSettings($paymentMethods);
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethods, func_get_args());
+    }
+
+    /**
+     * Чи може покупець на сторінці замовлення змінити спосіб оплати.
+     *
+     * $paymentMethodId = null означає «скинути вибір». Інакше спосіб має бути з того самого
+     * списку, що показує сторінка: увімкнений і доступний для доставки замовлення.
+     * Оплачене замовлення спосіб не міняє. Модуль, який знає про інші стани оплати
+     * (наприклад, заблоковані кошти), звужує правило через ChainExtender.
+     */
+    public function canChangePaymentMethod($order, ?int $paymentMethodId): bool
+    {
+        $allowed = !empty($order->id)
+            && empty($order->paid)
+            && ($paymentMethodId === null || $this->isPaymentMethodOffered($order, $paymentMethodId));
+
+        return (bool)ExtenderFacade::execute(__METHOD__, $allowed, func_get_args());
+    }
+
+    private function isPaymentMethodOffered(object $order, int $paymentMethodId): bool
+    {
+        // Захист у глибину: вибірка нижче такі id і так відкидає.
+        if ($paymentMethodId <= 0 || empty($order->delivery_id)) {
+            return false;
+        }
+
+        /** @var PaymentsEntity $paymentsEntity */
+        $paymentsEntity = $this->entityFactory->get(PaymentsEntity::class);
+
+        return (bool)$paymentsEntity->findOne([
+            'id'          => $paymentMethodId,
+            'enabled'     => 1,
+            'delivery_id' => (int)$order->delivery_id,
+        ]);
     }
     
     public function getOrderPurchasesList($orderId)
