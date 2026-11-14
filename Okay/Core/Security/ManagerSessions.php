@@ -19,8 +19,8 @@ class ManagerSessions
 {
     /**
      * Сесія без жодного запиту довше за це — недійсна. Те саме число
-     * backend/index.php ставить у session.gc_maxlifetime: реєстр робить межу
-     * точною, а не залежною від імовірнісного прибирання файлів сесій.
+     * SessionNames ставить у session.gc_maxlifetime для вітрини й адмінки: реєстр
+     * робить межу точною, а не залежною від імовірнісного прибирання файлів сесій.
      */
     public const IDLE_SECONDS = 86400;
     public const TOUCH_INTERVAL_SECONDS = 60;

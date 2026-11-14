@@ -6,7 +6,7 @@ use Okay\Admin\Helpers\BackendOrderHistoryHelper;
 
 require_once 'configure.php';
 
-if (!$managers->access('orders', $manager)) {
+if (!$request->checkSession() || !$managers->access('orders', $manager)) {
     exit();
 }
 

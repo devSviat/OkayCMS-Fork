@@ -131,20 +131,17 @@ switch ($object) {
         }
         break;
     case 'managers':
-        if ($managerMenu = $request->post('manager_menu')) {
+        $values = $DI->get(\Okay\Core\Security\ManagerProfilePolicy::class)
+            ->ownMenuUpdate($request->post('manager_menu'), $values);
+        if ($values !== null) {
             $entity = $entityFactory->get(\Okay\Entities\ManagersEntity::class);
-            $values = ['menu'=>$managerMenu];
-        } elseif ($managers->access('managers', $manager)) {
-            $entity = $entityFactory->get(\Okay\Entities\ManagersEntity::class);
-            $result = $entity->update($id, $values);
-        } elseif (isset($values['menu_status'])) {
-            $entity = $entityFactory->get(\Okay\Entities\ManagersEntity::class);
-            $result = $entity->update($id, ['menu_status'=>$values['menu_status']]);
+            $id = (int)$manager->id;
         }
         break;
 }
 
-if (empty($entity)) {
+// Модуль не може зареєструвати власний псевдонім `managers` і так обійти обмеження вище.
+if (empty($entity) && $object !== 'managers') {
     /** @var Okay\Core\Modules\UpdateObject $updateObject */
     $updateObject = $DI->get(\Okay\Core\Modules\UpdateObject::class);
     $moduleEntityObject = $updateObject->getByAlias($object);

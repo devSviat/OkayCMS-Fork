@@ -214,8 +214,14 @@ class IndexAdmin
         $menuCounters = $managerMenu->getCounters();
         $this->design->assign('menu_counters', $menuCounters);
 
+        $allowed = $this->mayOpenController($managers, $request);
+
         $backendMainHelper->commonBeforeControllerProcedure();
-        $backendMainHelper->beforeControllerProcedure(static::class);
+        // Розширення модулів на fetch() контролера виконують і дії з POST (масові дії над
+        // замовленнями тощо), тож без права на сторінку вони не запускаються.
+        if ($allowed) {
+            $backendMainHelper->beforeControllerProcedure(static::class);
+        }
 
         if ($messageSuccess = $this->postRedirectGet->matchMessageSuccess()) {
             $this->design->assign('message_success', $messageSuccess);
@@ -252,6 +258,11 @@ class IndexAdmin
             $response->redirectTo($this->request->getRootUrl() . '/backend/index.php?controller=LearningAdmin');
         }
 
+        return $allowed;
+    }
+
+    private function mayOpenController(Managers $managers, Request $request): bool
+    {
         // Вибирач файлів обслуговує редактор на всіх сторінках контенту, тож окремого
         // дозволу не має: досить бути менеджером, як і в попереднього менеджера файлів.
         // Свій профіль (сесії, 2FA) відкриває кожен менеджер; чужі — лише з правом

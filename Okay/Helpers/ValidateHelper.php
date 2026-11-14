@@ -45,7 +45,7 @@ class ValidateHelper
         /*Валидация данных клиента*/
         if (($u = $usersEntity->get((string)$user->email)) && $u->id != $currentUserId) {
             $error = 'user_exists';
-        } elseif (!$this->validator->isName($user->name, true)) {
+        } elseif (!$this->validator->isName($user->name, true) || !$this->validator->isName($user->last_name ?? '')) {
             $error = 'empty_name';
         } elseif (!$this->validator->isEmail($user->email, true)) {
             $error = 'empty_email';
@@ -70,7 +70,7 @@ class ValidateHelper
         /*Валидация данных клиента*/
         if ($userExists) {
             $error = 'user_exists';
-        } elseif (!$this->validator->isName($user->name, true)) {
+        } elseif (!$this->validator->isName($user->name, true) || !$this->validator->isName($user->last_name ?? '')) {
             $error = 'empty_name';
         } elseif (!$this->validator->isEmail($user->email, true)) {
             $error = 'empty_email';
@@ -127,7 +127,7 @@ class ValidateHelper
         $captchaCode =  $this->request->post('captcha_code', 'string');
         
         $error = null;
-        if (!$this->validator->isName($order->name, true)) {
+        if (!$this->validator->isName($order->name, true) || !$this->validator->isName($order->last_name ?? '')) {
             $error = 'empty_name';
         } elseif (!$this->validator->isEmail($order->email, true)) {
             $error = 'empty_email';

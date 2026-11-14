@@ -303,4 +303,20 @@ class ManagerProfileAccessTest extends TestCase
 
         return $factory;
     }
+
+    /**
+     * ajax/update_object.php пише без covers() і без пароля, тож звідти менеджер
+     * змінює лише вигляд свого меню. Інакше власник `managers` міняв би там пароль
+     * повному адміну.
+     */
+    public function testAjaxWritesOnlyTheMenuLayout(): void
+    {
+        $policy = new ManagerProfilePolicy(new Managers());
+
+        $this->assertSame(['menu' => ['orders' => ['x' => 'OrdersAdmin']]], $policy->ownMenuUpdate(['orders' => ['x' => 'OrdersAdmin']], ['password' => 'p']));
+        $this->assertSame(['menu_status' => 1], $policy->ownMenuUpdate(null, ['menu_status' => '1', 'password' => 'p']));
+        $this->assertSame(['menu_status' => 0], $policy->ownMenuUpdate(null, ['menu_status' => '0']));
+        $this->assertNull($policy->ownMenuUpdate(null, ['password' => 'p', 'permissions' => '']));
+        $this->assertNull($policy->ownMenuUpdate('', 'menu_status'));
+    }
 }

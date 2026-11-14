@@ -38,8 +38,7 @@ $config = $DI->get(Config::class);
 
 // Засекаем время
 $time_start = microtime(true);
-ini_set('session.gc_maxlifetime', \Okay\Core\Security\ManagerSessions::IDLE_SECONDS);
-// cookie_lifetime задається в SessionNames::cookieParams()
+// Межу прибирання (session.gc_maxlifetime) і cookie_lifetime задає SessionNames.
 \Okay\Core\Security\SessionNames::startBackend();
 // До першого читання $_SESSION['admin']: відкликана сесія тут стає гостьовою.
 $DI->get(\Okay\Core\Security\ManagerSessions::class)->enforce();

@@ -24,27 +24,29 @@ class AdminRecoveryFlowTest extends TestCase
         $this->assertStringContainsString('$result->send = true;', $source);
     }
 
-    public function testEmptyPasswordIsRejectedBeforeLogin()
+    /**
+     * Порожній, короткий і непідтверджений пароль відсікає ManagerPasswordRule
+     * (ManagerPasswordRuleTest), а тут — що відновлення застосовує його до запису
+     * пароля й до входу, і що шаблон показує кожну з помилок.
+     */
+    public function testRecoveryChecksThePasswordRuleBeforeSavingOrSigningIn()
     {
         $source = $this->source();
 
-        $this->assertStringContainsString("trim(\$new_password) === ''", $source);
-        $this->assertStringContainsString("\$this->design->assign('error_message', 'password_empty');", $source);
+        $rule = strpos($source, 'ManagerPasswordRule::problem($new_password, $new_password_check)');
+        $save = strpos($source, "\$managersEntity->update((int)\$manager->id, ['password' => \$new_password]);");
+        $login = strpos($source, '$managerSessions->signIn($manager');
 
-        $guard = strpos($source, "trim(\$new_password) === ''");
-        $login = strpos($source, '$managerSessions->signIn($manager)');
-
-        $this->assertIsInt($guard);
+        $this->assertIsInt($rule);
+        $this->assertIsInt($save);
         $this->assertIsInt($login);
-        $this->assertLessThan($login, $guard);
-    }
+        $this->assertLessThan($save, $rule);
+        $this->assertLessThan($login, $rule);
 
-    public function testMismatchedConfirmationIsRejected()
-    {
-        $source = $this->source();
-
-        $this->assertStringContainsString('$new_password !== $new_password_check', $source);
-        $this->assertStringContainsString("\$this->design->assign('error_message', 'password_wrong');", $source);
+        $template = (string) file_get_contents(dirname(__DIR__, 2) . '/backend/design/html/auth.tpl');
+        foreach (['password_empty', 'password_short', 'password_mismatch'] as $code) {
+            $this->assertStringContainsString("\$error_message == '{$code}'", $template);
+        }
     }
 
     /**
@@ -81,7 +83,7 @@ class AdminRecoveryFlowTest extends TestCase
 
         $this->assertStringContainsString('name="code"', $template);
         $this->assertStringContainsString("\$error_message == 'password_empty'", $template);
-        $this->assertStringContainsString("\$error_message == 'password_wrong'", $template);
+        $this->assertStringContainsString("\$error_message == 'password_mismatch'", $template);
     }
 
     public function testRecoveryJsNoLongerRevealsWhetherTheEmailIsAnAdmin()

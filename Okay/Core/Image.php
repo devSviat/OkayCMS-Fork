@@ -9,6 +9,7 @@ use Okay\Core\Adapters\Resize\AdapterManager;
 use Okay\Core\Modules\Extender\ExtenderFacade;
 use Okay\Core\Security\Filemanager\PathResolver;
 use WebPConvert\WebPConvert;
+use Okay\Core\Security\PublicAddress;
 
 class Image
 {
@@ -386,6 +387,13 @@ class Image
         curl_setopt($ch, CURLOPT_TIMEOUT, 1000);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
 
+        // Адресу фото задає менеджер, а качає сервер, тож лише http(s) і лише на
+        // публічні адреси. Перевірка в PREREQFUNCTION бачить IP, до якого curl уже
+        // підключився, і спрацьовує на кожен редирект, тож DNS чи Location не обійдуть її.
+        curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+        curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+        curl_setopt($ch, CURLOPT_PREREQFUNCTION, static fn ($handle, string $primaryIp): int
+            => PublicAddress::isPublic($primaryIp) ? CURL_PREREQFUNC_OK : CURL_PREREQFUNC_ABORT);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_ENCODING, "");
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

@@ -53,6 +53,12 @@ class AutoDeployAdmin extends IndexAdmin
     
     public function executeMigrations(DeployHelper $deployHelper)
     {
+        // Виконує SQL з теки міграцій, тож лише POST: його backend/index.php перевіряє
+        // на токен сесії, а GET відкривався б і посиланням з чужого сайту.
+        if (!$this->request->method('post')) {
+            $this->response->setContent(false, RESPONSE_JSON);
+            return;
+        }
         $deployHelper->executeMigrations();
         $this->response->setContent(true, RESPONSE_JSON);
     }
