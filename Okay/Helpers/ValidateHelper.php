@@ -21,17 +21,20 @@ class ValidateHelper
     private Settings $settings;
     private Request $request;
     private FrontTranslations $frontTranslations;
+    private OrdersHelper $ordersHelper;
 
     public function __construct(
         Validator $validator,
         Settings $settings,
         Request $request,
-        FrontTranslations $frontTranslations
+        FrontTranslations $frontTranslations,
+        OrdersHelper $ordersHelper
     ) {
         $this->validator = $validator;
         $this->settings = $settings;
         $this->request = $request;
         $this->frontTranslations = $frontTranslations;
+        $this->ordersHelper = $ordersHelper;
     }
 
     public function getUserError($user, $currentUserId): ?string
@@ -135,6 +138,12 @@ class ValidateHelper
             $error = 'empty_phone';
         } elseif (!$this->validator->isComment($order->comment)) {
             $error = 'empty_comment';
+        } elseif (!empty($order->payment_method_id)
+            && !$this->ordersHelper->isPaymentMethodOffered($order, (int)$order->payment_method_id)
+        ) {
+            // Текстом, а не кодом: теми знають лише свої коди, а невідому помилку друкують як є.
+            // Без ключа в темі лишається код, бо null тут означав би, що перевірку пройдено.
+            $error = $this->frontTranslations->getTranslation('form_error_payment_method') ?: 'payment_method';
         } elseif ($this->settings->get('captcha_cart') && !$this->validator->verifyCaptcha('captcha_cart', $captchaCode)) {
             $error = 'captcha';
         }

@@ -6,6 +6,7 @@ use Okay\Core\FrontTranslations;
 use Okay\Core\Request;
 use Okay\Core\Settings;
 use Okay\Core\Validator;
+use Okay\Helpers\OrdersHelper;
 use Okay\Helpers\ValidateHelper;
 use PHPUnit\Framework\TestCase;
 
@@ -59,6 +60,6 @@ class LastNameMarkupTest extends TestCase
         };
         $translations = new \ReflectionClass(FrontTranslations::class)->newInstanceWithoutConstructor();
 
-        return new ValidateHelper($validator, $settings, $request, $translations);
+        return new ValidateHelper($validator, $settings, $request, $translations, $this->createStub(OrdersHelper::class));
     }
 }

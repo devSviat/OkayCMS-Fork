@@ -79,6 +79,7 @@ $lang['form_enter_email'] = 'Enter email';
 $lang['form_error_captcha'] = 'CAPTCHA is wrong';
 $lang['form_error_not_saved'] = 'Could not save. Please try again or contact us.';
 $lang['form_error_phone'] = 'The phone field is empty or has an incorrect format.';
+$lang['form_error_payment_method'] = 'Choose a payment method available for the selected delivery.';
 $lang['form_error_phone_example'] = 'The correct phone example:';
 $lang['form_email'] = 'Email';
 $lang['form_address'] = 'Address';

@@ -416,6 +416,7 @@ return [
             new SR(Settings::class),
             new SR(Request::class),
             new SR(FrontTranslations::class),
+            new SR(OrdersHelper::class),
         ]
     ],
     CartHelper::class => [

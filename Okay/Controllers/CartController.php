@@ -163,6 +163,7 @@ class CartController extends AbstractController
         if (isset($_POST['checkout'])) {
             $order = $cartRequest->postOrder();
             $order = $ordersHelper->attachUserIfLogin($order, $this->user);
+            $order = $ordersHelper->dropPaymentMethodIfDeliveryOffersNone($order);
 
             if ($error = $validateHelper->getCartValidateError($order)) {
                 $this->design->assign('error', $error);

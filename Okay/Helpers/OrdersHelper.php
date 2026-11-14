@@ -127,21 +127,51 @@ class OrdersHelper
         return (bool)ExtenderFacade::execute(__METHOD__, $allowed, func_get_args());
     }
 
-    private function isPaymentMethodOffered(object $order, int $paymentMethodId): bool
+    /**
+     * Чи пропонує доставка замовлення цей спосіб оплати: він увімкнений і повʼязаний із нею.
+     * Одне правило для сторінки замовлення й оформлення з кошика; модуль звужує його тут,
+     * і звуження діє на обидва місця.
+     */
+    public function isPaymentMethodOffered(object $order, int $paymentMethodId): bool
     {
         // Захист у глибину: вибірка нижче такі id і так відкидає.
-        if ($paymentMethodId <= 0 || empty($order->delivery_id)) {
-            return false;
+        $offered = $paymentMethodId > 0
+            && !empty($order->delivery_id)
+            && (bool)$this->paymentsEntity()->findOne([
+                'id'          => $paymentMethodId,
+                'enabled'     => 1,
+                'delivery_id' => (int)$order->delivery_id,
+            ]);
+
+        return (bool)ExtenderFacade::execute(__METHOD__, $offered, func_get_args());
+    }
+
+    /**
+     * Прибирає спосіб оплати, коли доставка замовлення не пропонує жодного. Тема тоді ховає
+     * блок оплати, але позначена прихована радіокнопка однаково надсилається, тож покупець
+     * отримав би помилку про вибір, якого не бачив. 0 — те саме, що спосіб не надіслано.
+     */
+    public function dropPaymentMethodIfDeliveryOffersNone(object $order): object
+    {
+        if (!empty($order->payment_method_id) && !$this->deliveryOffersPaymentMethods($order)) {
+            $order->payment_method_id = 0;
         }
 
-        /** @var PaymentsEntity $paymentsEntity */
-        $paymentsEntity = $this->entityFactory->get(PaymentsEntity::class);
+        return ExtenderFacade::execute(__METHOD__, $order, func_get_args());
+    }
 
-        return (bool)$paymentsEntity->findOne([
-            'id'          => $paymentMethodId,
-            'enabled'     => 1,
-            'delivery_id' => (int)$order->delivery_id,
-        ]);
+    private function deliveryOffersPaymentMethods(object $order): bool
+    {
+        return !empty($order->delivery_id)
+            && (bool)$this->paymentsEntity()->findOne([
+                'enabled'     => 1,
+                'delivery_id' => (int)$order->delivery_id,
+            ]);
+    }
+
+    private function paymentsEntity(): PaymentsEntity
+    {
+        return $this->entityFactory->get(PaymentsEntity::class);
     }
     
     public function getOrderPurchasesList($orderId)
