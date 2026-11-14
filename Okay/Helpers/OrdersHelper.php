@@ -88,8 +88,8 @@ class OrdersHelper
         $paymentMethod = null;
 
         if ($order->payment_method_id) {
-            $paymentMethod = $paymentsEntity->get((int)$order->payment_method_id);
-            $paymentMethod->settings = unserialize($paymentMethod->settings, ['allowed_classes' => false]);
+            $paymentMethod = $paymentsEntity->get((int)$order->payment_method_id) ?: null;
+            self::withoutSettings($paymentMethod);
         }
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethod, func_get_args());
@@ -106,10 +106,55 @@ class OrdersHelper
         ]);
 
         foreach ($paymentMethods as $paymentMethod) {
-            $paymentMethod->settings = unserialize($paymentMethod->settings, ['allowed_classes' => false]);
+            self::withoutSettings($paymentMethod);
         }
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethods, func_get_args());
+    }
+
+    /**
+     * Чи може покупець на сторінці замовлення змінити спосіб оплати.
+     *
+     * $paymentMethodId = null означає «скинути вибір». Інакше спосіб має бути з того самого
+     * списку, що показує сторінка: увімкнений і доступний для доставки замовлення.
+     * Оплачене замовлення спосіб не міняє. Модуль, який знає про інші стани оплати
+     * (наприклад, заблоковані кошти), звужує правило через ChainExtender.
+     */
+    public function canChangePaymentMethod($order, ?int $paymentMethodId): bool
+    {
+        $allowed = !empty($order->id)
+            && empty($order->paid)
+            && ($paymentMethodId === null || $this->isPaymentMethodOffered($order, $paymentMethodId));
+
+        return ExtenderFacade::execute(__METHOD__, $allowed, func_get_args());
+    }
+
+    private function isPaymentMethodOffered(object $order, int $paymentMethodId): bool
+    {
+        if ($paymentMethodId <= 0 || empty($order->delivery_id)) {
+            return false;
+        }
+
+        /** @var PaymentsEntity $paymentsEntity */
+        $paymentsEntity = $this->entityFactory->get(PaymentsEntity::class);
+
+        return (bool)$paymentsEntity->findOne([
+            'id'          => $paymentMethodId,
+            'enabled'     => 1,
+            'delivery_id' => (int)$order->delivery_id,
+        ]);
+    }
+
+    /**
+     * Налаштування способу оплати містять ключі платіжних сервісів, а ці обʼєкти йдуть
+     * у шаблон вітрини. Модулі читають налаштування на сервері через
+     * PaymentsEntity::getPaymentSettings().
+     */
+    private static function withoutSettings(?object $paymentMethod): void
+    {
+        if ($paymentMethod !== null) {
+            unset($paymentMethod->settings);
+        }
     }
     
     public function getOrderPurchasesList($orderId)
