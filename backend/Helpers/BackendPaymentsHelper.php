@@ -9,6 +9,8 @@ use Okay\Core\EntityFactory;
 use Okay\Core\Image;
 use Okay\Core\Request;
 use Okay\Core\Modules\Extender\ExtenderFacade;
+use Okay\Core\Modules\Modules;
+use Okay\Core\Modules\SecretSettings;
 use Okay\Entities\PaymentsEntity;
 
 class BackendPaymentsHelper
@@ -33,16 +35,23 @@ class BackendPaymentsHelper
      */
     private $imageCore;
 
+    /**
+     * @var Modules
+     */
+    private $modules;
+
     public function __construct(
         EntityFactory $entityFactory,
         Request $request,
         Config $config,
-        Image $imageCore
+        Image $imageCore,
+        Modules $modules
     ) {
         $this->paymentMethodsEntity = $entityFactory->get(PaymentsEntity::class);
         $this->request   = $request;
         $this->config    = $config;
         $this->imageCore = $imageCore;
+        $this->modules   = $modules;
     }
 
     public function disable(array $ids)
@@ -140,8 +149,21 @@ class BackendPaymentsHelper
         return ExtenderFacade::execute(__METHOD__, $payment, func_get_args());
     }
 
-    public function updateSettings($paymentId, array $paymentSettings)
+    /**
+     * Записує налаштування способу оплати. Секретні змінні зливаються зі збереженими
+     * (див. SecretSettings::merge()), бо сторінка їх не друкує і порожнє поле означає «не змінювати».
+     *
+     * @param list<string> $cleared секретні змінні, які треба стерти
+     */
+    public function updateSettings($paymentId, array $paymentSettings, array $cleared = [])
     {
+        $stored = $this->paymentMethodsEntity->getPaymentSettings($paymentId);
+        $paymentSettings = SecretSettings::merge(
+            $paymentSettings,
+            is_array($stored) ? $stored : [],
+            $this->modules->secretPaymentSettingVariables(),
+            $cleared
+        );
         $this->paymentMethodsEntity->updatePaymentSettings($paymentId, $paymentSettings);
         return ExtenderFacade::execute(__METHOD__, null, func_get_args());
     }

@@ -72,6 +72,11 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
 
     private $plugins;
 
+    private const array SETTING_TYPES = ['hidden', 'text', 'date', 'checkbox'];
+
+    // secret уміє показувати лише сторінка способу оплати; на сторінці доставки він лишається text.
+    private const array PAYMENT_SETTING_TYPES = [...self::SETTING_TYPES, SecretSettings::TYPE];
+
     public function __construct(
         EntityFactory $entityFactory,
         Module        $module,
@@ -333,10 +338,33 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         /** @var ModulesEntity $modulesEntity */
         $modulesEntity = $this->entityFactory->get(ModulesEntity::class);
         foreach ($modulesEntity->find(['enabled' => 1, 'type' => MODULE_TYPE_PAYMENT]) as $module) {
-            $module->settings = $this->initModuleSettings($module->vendor, $module->module_name, $langLabel);
+            $module->settings = $this->initModuleSettings($module->vendor, $module->module_name, $langLabel, self::PAYMENT_SETTING_TYPES);
             $modules[$module->vendor . '/' . $module->module_name] = $module;
         }
         return $modules;
+    }
+
+    /**
+     * Змінні з типом secret у settings.xml усіх увімкнених платіжних модулів.
+     *
+     * @return list<string>
+     */
+    public function secretPaymentSettingVariables(): array
+    {
+        $variables = [];
+
+        /** @var ModulesEntity $modulesEntity */
+        $modulesEntity = $this->entityFactory->get(ModulesEntity::class);
+        foreach ($modulesEntity->find(['enabled' => 1, 'type' => MODULE_TYPE_PAYMENT]) as $module) {
+            $settings = $this->initModuleSettings($module->vendor, $module->module_name, null, self::PAYMENT_SETTING_TYPES);
+            foreach ($settings as $variable => $setting) {
+                if (($setting->type ?? null) === SecretSettings::TYPE) {
+                    $variables[] = (string)$variable;
+                }
+            }
+        }
+
+        return array_values(array_unique($variables));
     }
 
     public function getDeliveryModules($langLabel)
@@ -399,12 +427,16 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         }
     }
 
-    private function initModuleSettings($vendor, $moduleName, $langLabel)
+    /**
+     * @param string|null $langLabel null - підписи лишаються як у settings.xml, переклади не читаються
+     * @param list<string> $types значення атрибута type, які зберігаються; решта стає text
+     */
+    private function initModuleSettings($vendor, $moduleName, $langLabel, array $types = self::SETTING_TYPES)
     {
         $settings = [];
         $moduleDir = $this->module->getModuleDirectory($vendor, $moduleName);
 
-        $moduleTranslations = $this->getModuleBackendTranslations($vendor, $moduleName, $langLabel);
+        $moduleTranslations = $langLabel === null ? [] : $this->getModuleBackendTranslations($vendor, $moduleName, $langLabel);
         if (is_readable($moduleDir . '/settings.xml') && $xml = simplexml_load_file($moduleDir . '/settings.xml')) {
 
             foreach ($xml->settings as $setting) {
@@ -418,7 +450,7 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
 
                 if (empty((array)$setting->options)) {
                     $settings[(string)$setting->variable]->type = 'text';
-                    if (!empty($attributes->type) && in_array(strtolower($attributes->type), ['hidden', 'text', 'date', 'checkbox'])) {
+                    if (!empty($attributes->type) && in_array(strtolower($attributes->type), $types, true)) {
                         $settings[(string)$setting->variable]->type = strtolower($attributes->type);
                     }
 

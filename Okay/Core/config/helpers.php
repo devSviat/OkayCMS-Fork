@@ -30,6 +30,7 @@ use Okay\Admin\Helpers\BackendUsersHelper;
 use Okay\Admin\Helpers\BackendValidateHelper;
 use Okay\Admin\Requests\BackendOrdersRequest;
 use Okay\Core\Modules\Module;
+use Okay\Core\Modules\Modules;
 use Okay\Core\OkayContainer\Reference\ParameterReference as PR;
 use Okay\Core\OkayContainer\Reference\ServiceReference as SR;
 use Okay\Admin\Helpers\BackendProductsHelper;
@@ -347,6 +348,7 @@ return [
             new SR(Request::class),
             new SR(Config::class),
             new SR(Image::class),
+            new SR(Modules::class),
         ]
     ],
     BackendUsersHelper::class => [

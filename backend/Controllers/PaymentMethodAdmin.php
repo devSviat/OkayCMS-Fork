@@ -27,6 +27,7 @@ class PaymentMethodAdmin extends IndexAdmin
 
             $paymentMethod     = $backendPaymentsRequest->postPayment();
             $paymentSettings   = $backendPaymentsRequest->postSettings();
+            $clearedSettings   = $backendPaymentsRequest->postClearSettings();
             $paymentDeliveries = $backendPaymentsRequest->postPaymentDeliveries();
 
             if ($error = $backendValidateHelper->getPaymentValidateError($paymentMethod)) {
@@ -55,7 +56,7 @@ class PaymentMethodAdmin extends IndexAdmin
                     $backendPaymentsHelper->uploadImage($image, $paymentMethod);
                 }
 
-                $backendPaymentsHelper->updateSettings($paymentMethod->id, $paymentSettings);
+                $backendPaymentsHelper->updateSettings($paymentMethod->id, $paymentSettings, $clearedSettings);
                 $backendPaymentsHelper->updatePaymentDeliveries($paymentMethod->id, $paymentDeliveries);
 
                 $this->postRedirectGet->redirect();

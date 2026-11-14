@@ -239,6 +239,24 @@
                                                         <div class="heading_label boxes_inline" for="{$setting->variable|escape}">{$setting->name|escape}</div>
                                                     </div>
                                                 </div>
+                                            {elseif isset($setting->type) && $setting->type == 'secret'}
+                                                {* Збережене значення не друкується ніде на сторінці: порожнє поле при збереженні лишає його без змін. *}
+                                                {$secret_stored = !empty($payment_method->payment_settings[$setting->variable])}
+                                                <div class="col-lg-6">
+                                                    <div class="form-group clearfix">
+                                                        <div class="heading_label" for="{$setting->variable|escape}">{$setting->name|escape}</div>
+                                                        <div class="">
+                                                            <input name="payment_settings[{$setting->variable|escape}]" class="form-control" type="password" autocomplete="new-password" value="" {if $secret_stored}placeholder="{$btr->payment_method_secret_saved|escape}"{/if} id="{$setting->variable|escape}"/>
+                                                        </div>
+                                                        {if $secret_stored}
+                                                            <div class="boxes_inline">
+                                                                <input name="payment_settings_clear[{$setting->variable|escape}]" class="hidden_check" type="checkbox" value="1" id="{$setting->variable|escape}__clear"/>
+                                                                <label class="okay_ckeckbox" for="{$setting->variable|escape}__clear"></label>
+                                                            </div>
+                                                            <div class="heading_label boxes_inline">{$btr->payment_method_secret_clear|escape}</div>
+                                                        {/if}
+                                                    </div>
+                                                </div>
                                             {else}
                                                 <div class="col-lg-6">
                                                     <div class="form-group clearfix">
