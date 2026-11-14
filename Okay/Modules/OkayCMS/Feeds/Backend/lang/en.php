@@ -88,7 +88,7 @@ $lang['okay_cms__feeds__feed__settings__google_merchant__description_in_html_inf
 $lang['okay_cms__feeds__feed__settings__google_merchant__no_export_without_price'] = "Do not unload goods with a price of 0";
 $lang['okay_cms__feeds__feed__settings__google_merchant__adult'] = "Adult products";
 $lang['okay_cms__feeds__feed__settings__google_merchant__use_variant_name_like_size'] = "Use variant name like a size (size)";
-$lang['okay_cms__feeds__feed__settings__google_merchant__google_merchant__company'] = "Company";
+$lang['okay_cms__feeds__feed__settings__google_merchant__company'] = "Company";
 $lang['okay_cms__feeds__feed__settings__google_merchant__color'] = "Color";
 $lang['okay_cms__feeds__feed__settings__google_merchant__color_notify'] = "Select feature";
 $lang['okay_cms__feeds__feed__settings__google_merchant__gtin'] = "Code GTIN (gtin)";
@@ -117,7 +117,7 @@ $lang['okay_cms__feeds__feed__settings__hotline__upload_only_in_stock_products']
 $lang['okay_cms__feeds__feed__settings__hotline__use_full_description'] = "Transfer the full description to the upload (if turned off, the short description is transmitted)";
 $lang['okay_cms__feeds__feed__settings__hotline__description_in_html'] = 'Pass full html description to feed';
 $lang['okay_cms__feeds__feed__settings__hotline__description_in_html_info'] = "If this checkbox is checked, the full description will not be stripped of html tags and the text will be wrapped in CDATA to correctly pass tags to html feeds";
-$lang['okay_cms__feeds__feed__settings__hotline__google_merchant__company'] = "Company";
+$lang['okay_cms__feeds__feed__settings__hotline__company'] = "Company";
 $lang['okay_cms__feeds__feed__settings__hotline__guarantee_manufacturer'] = "Guarantee manufacturer (months)";
 $lang['okay_cms__feeds__feed__settings__hotline__guarantee_shop'] = "Guarantee shop";
 $lang['okay_cms__feeds__feed__settings__hotline__firm_id'] = "Unique store code (firmId)";
@@ -151,7 +151,7 @@ $lang['okay_cms__feeds__feed__settings__facebook__description_in_html_info'] = "
 $lang['okay_cms__feeds__feed__settings__facebook__no_export_without_price'] = "Do not unload goods with a price of 0";
 $lang['okay_cms__feeds__feed__settings__facebook__adult'] = "Adult products";
 $lang['okay_cms__feeds__feed__settings__facebook__use_variant_name_like_size'] = "Use variant name like a size (size)";
-$lang['okay_cms__feeds__feed__settings__facebook__google_merchant__company'] = "Company";
+$lang['okay_cms__feeds__feed__settings__facebook__company'] = "Company";
 $lang['okay_cms__feeds__feed__settings__facebook__color'] = "Color";
 $lang['okay_cms__feeds__feed__settings__facebook__color_notify'] = "Select feature";
 $lang['okay_cms__feeds__feed__settings__facebook__gtin'] = "Code GTIN (gtin)";
