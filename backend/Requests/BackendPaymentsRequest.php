@@ -45,6 +45,25 @@ class BackendPaymentsRequest
         return ExtenderFacade::execute(__METHOD__, $paymentSettings, func_get_args());
     }
 
+    /**
+     * Секретні налаштування, позначені «Стерти».
+     *
+     * @return list<string>
+     */
+    public function postClearSettings()
+    {
+        $posted = $this->request->post('payment_settings_clear', null, []);
+        $cleared = [];
+        if (is_array($posted)) {
+            foreach ($posted as $variable => $checked) {
+                if (!empty($checked)) {
+                    $cleared[] = (string)$variable;
+                }
+            }
+        }
+        return ExtenderFacade::execute(__METHOD__, $cleared, func_get_args());
+    }
+
     public function postDeleteImage()
     {
         $deleteImage = $this->request->post('delete_image');
