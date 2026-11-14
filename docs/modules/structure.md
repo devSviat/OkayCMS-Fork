@@ -210,8 +210,10 @@ Ini-файл із власними директивами модуля. Дире
   а поруч — позначку «Стерти».
 - Порожнє поле (або самі пробіли) при збереженні лишає збережене значення. Нове значення
   записується без пробілів по краях. «Стерти» записує порожній рядок.
-- Злиття робить `BackendPaymentsHelper::updateSettings()` через `Okay\Core\Modules\SecretSettings::merge()`;
-  список секретних змінних дає `Modules::secretPaymentSettingVariables()`.
+- Злиття робить `BackendPaymentsHelper::updateSettings()` через `Okay\Core\Modules\SecretSettings::merge()`.
+  Секретні змінні беруться лише з модуля, вибраного у формі (`Modules::secretPaymentSettingVariables($module)`):
+  однойменне текстове поле іншого модуля спорожнюється як звичайне.
+- «Стерти» діє лише на поле, яке форма надіслала; нового ключа не додає.
 - Модуль читає значення як завжди, через `PaymentsEntity::getPaymentSettings()`.
 - Діє лише для модулів оплати й лише без `<options>`. На сторінці способу доставки `secret`
   стає `text`.

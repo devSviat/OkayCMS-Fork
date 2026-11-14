@@ -17,19 +17,27 @@ class BackendPaymentsHelperSecretTest extends TestCase
 {
     public function testEmptySecretKeepsStoredValueOnSave(): void
     {
-        $written = $this->save(['vendor__public_key' => 'public-1111', 'vendor__private_key' => ''], []);
+        $written = $this->save(['vendor__public_key' => 'public-1111', 'vendor__private_key' => ''], [], 'Test/WithSecret');
 
         $this->assertSame(['vendor__public_key' => 'public-1111', 'vendor__private_key' => 'stored-0000'], $written);
     }
 
-    public function testClearedSecretIsWrittenEmpty(): void
+    /** Те саме ім'я в іншому модулі - звичайне текстове поле, і його можна спорожнити. */
+    public function testSameNamedTextFieldOfAnotherModuleCanBeEmptied(): void
     {
-        $written = $this->save(['vendor__public_key' => 'public-1111', 'vendor__private_key' => ''], ['vendor__private_key']);
+        $written = $this->save(['vendor__public_key' => 'public-1111', 'vendor__private_key' => ''], [], 'Test/PlainText');
 
         $this->assertSame('', $written['vendor__private_key']);
     }
 
-    private function save(array $posted, array $cleared): array
+    public function testClearedSecretIsWrittenEmpty(): void
+    {
+        $written = $this->save(['vendor__public_key' => 'public-1111', 'vendor__private_key' => ''], ['vendor__private_key'], 'Test/WithSecret');
+
+        $this->assertSame('', $written['vendor__private_key']);
+    }
+
+    private function save(array $posted, array $cleared, string $module): array
     {
         $written = null;
 
@@ -46,14 +54,16 @@ class BackendPaymentsHelperSecretTest extends TestCase
         );
 
         $modules = $this->createStub(Modules::class);
-        $modules->method('secretPaymentSettingVariables')->willReturn(['vendor__private_key']);
+        $modules->method('secretPaymentSettingVariables')->willReturnCallback(
+            static fn (string $module): array => $module === 'Test/WithSecret' ? ['vendor__private_key'] : []
+        );
 
         $helper = (new ReflectionClass(BackendPaymentsHelper::class))->newInstanceWithoutConstructor();
         foreach (['paymentMethodsEntity' => $paymentsEntity, 'modules' => $modules] as $name => $value) {
             new \ReflectionProperty(BackendPaymentsHelper::class, $name)->setValue($helper, $value);
         }
 
-        $helper->updateSettings(5, $posted, $cleared);
+        $helper->updateSettings(5, $posted, $cleared, $module);
 
         $this->assertIsArray($written);
 

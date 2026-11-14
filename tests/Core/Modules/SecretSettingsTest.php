@@ -75,6 +75,19 @@ class SecretSettingsTest extends TestCase
         $this->assertSame('', $merged['vendor__private_key']);
     }
 
+    /** Позначка «Стерти» без самого поля не додає порожній ключ у налаштування. */
+    public function testClearOfAbsentSecretAddsNothing(): void
+    {
+        $merged = SecretSettings::merge(
+            ['other__field' => 'x'],
+            ['vendor__private_key' => 'stored-0000'],
+            self::SECRETS,
+            ['vendor__private_key']
+        );
+
+        $this->assertSame(['other__field' => 'x'], $merged);
+    }
+
     public function testNonSecretUntouched(): void
     {
         $merged = SecretSettings::merge(

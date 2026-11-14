@@ -154,14 +154,18 @@ class BackendPaymentsHelper
      * (див. SecretSettings::merge()), бо сторінка їх не друкує і порожнє поле означає «не змінювати».
      *
      * @param list<string> $cleared секретні змінні, які треба стерти
+     * @param string|null $module модуль, чиї поля надіслала форма ("Vendor/Module");
+     *                            null - модуль, записаний у спосіб оплати
      */
-    public function updateSettings($paymentId, array $paymentSettings, array $cleared = [])
+    public function updateSettings($paymentId, array $paymentSettings, array $cleared = [], $module = null)
     {
+        $module ??= $this->paymentMethodsEntity->get((int)$paymentId)->module ?? '';
+
         $stored = $this->paymentMethodsEntity->getPaymentSettings($paymentId);
         $paymentSettings = SecretSettings::merge(
             $paymentSettings,
             is_array($stored) ? $stored : [],
-            $this->modules->secretPaymentSettingVariables(),
+            $this->modules->secretPaymentSettingVariables((string)$module),
             $cleared
         );
         $this->paymentMethodsEntity->updatePaymentSettings($paymentId, $paymentSettings);

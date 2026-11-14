@@ -56,7 +56,9 @@ class PaymentMethodAdmin extends IndexAdmin
                     $backendPaymentsHelper->uploadImage($image, $paymentMethod);
                 }
 
-                $backendPaymentsHelper->updateSettings($paymentMethod->id, $paymentSettings, $clearedSettings);
+                // Модуль саме з форми: вона надсилає поля лише вибраного модуля, і цей самий модуль
+                // щойно записано у спосіб оплати. Збережений до запиту модуль хибний при перемиканні.
+                $backendPaymentsHelper->updateSettings($paymentMethod->id, $paymentSettings, $clearedSettings, $paymentMethod->module);
                 $backendPaymentsHelper->updatePaymentDeliveries($paymentMethod->id, $paymentDeliveries);
 
                 $this->postRedirectGet->redirect();

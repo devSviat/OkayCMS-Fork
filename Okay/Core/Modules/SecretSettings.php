@@ -18,10 +18,11 @@ final class SecretSettings
     /**
      * Зливає надіслані налаштування способу оплати зі збереженими.
      *
-     * Для кожної секретної змінної: є в $cleared → ''; надіслано порожнє чи самі
+     * Для кожної секретної змінної, яку надіслано: є в $cleared → ''; порожнє чи самі
      * пробіли → збережене значення; інакше → надіслане без пробілів по краях.
-     * Секрет, якого немає серед надісланих, так і лишається відсутнім, як і решта
-     * полів модуля, що його форма не показала. Інші ключі повертаються як прийшли.
+     * Секрет, якого немає серед надісланих, лишається відсутнім навіть із позначкою
+     * «Стерти», як і решта полів модуля, що його форма не показала. Інші ключі
+     * повертаються як прийшли.
      *
      * @param array<string, mixed> $posted
      * @param array<string, mixed> $stored
@@ -32,12 +33,12 @@ final class SecretSettings
     public static function merge(array $posted, array $stored, array $secretVariables, array $cleared): array
     {
         foreach ($secretVariables as $variable) {
-            if (in_array($variable, $cleared, true)) {
-                $posted[$variable] = '';
+            if (!array_key_exists($variable, $posted)) {
                 continue;
             }
 
-            if (!array_key_exists($variable, $posted)) {
+            if (in_array($variable, $cleared, true)) {
+                $posted[$variable] = '';
                 continue;
             }
 

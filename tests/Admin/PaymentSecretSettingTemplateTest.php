@@ -21,7 +21,10 @@ class PaymentSecretSettingTemplateTest extends TestCase
 {
     private const string TEMPLATE = 'backend/design/html/payment_method.tpl';
     private const string STORED_SECRET = 'Sk-Fake-7f3a"<b>';
-    private const string FIXTURE_DIR = __DIR__ . '/Fixtures/SecretSettingsModule/';
+    private const array FIXTURE_DIRS = [
+        'SecretSettings' => __DIR__ . '/Fixtures/SecretSettingsModule/',
+        'SharedText' => __DIR__ . '/Fixtures/SharedTextModule/',
+    ];
 
     private ?string $compileDir = null;
 
@@ -83,7 +86,20 @@ class PaymentSecretSettingTemplateTest extends TestCase
 
     public function testSecretPaymentSettingVariables(): void
     {
-        $this->assertSame(['vendor__private_key', 'vendor__token'], $this->modules()->secretPaymentSettingVariables());
+        $this->assertSame(['vendor__private_key', 'vendor__token'], $this->modules()->secretPaymentSettingVariables('Test/SecretSettings'));
+    }
+
+    /**
+     * Різні модулі оплати можуть мати однойменні змінні. Секрет одного модуля
+     * не має робити секретом однойменне текстове поле іншого.
+     */
+    public function testSecretVariablesComeOnlyFromTheGivenModule(): void
+    {
+        $modules = $this->modules();
+
+        $this->assertSame([], $modules->secretPaymentSettingVariables('Test/SharedText'));
+        $this->assertSame([], $modules->secretPaymentSettingVariables('Test/NotInstalled'));
+        $this->assertSame([], $modules->secretPaymentSettingVariables('null'));
     }
 
     private function modules(): Modules
@@ -91,13 +107,16 @@ class PaymentSecretSettingTemplateTest extends TestCase
         $modulesEntity = $this->createStub(ModulesEntity::class);
         $modulesEntity->method('find')->willReturn([
             (object)['vendor' => 'Test', 'module_name' => 'SecretSettings'],
+            (object)['vendor' => 'Test', 'module_name' => 'SharedText'],
         ]);
 
         $entityFactory = $this->createStub(EntityFactory::class);
         $entityFactory->method('get')->willReturn($modulesEntity);
 
         $module = $this->createStub(Module::class);
-        $module->method('getModuleDirectory')->willReturn(self::FIXTURE_DIR);
+        $module->method('getModuleDirectory')->willReturnCallback(
+            static fn (string $vendor, string $moduleName): string => self::FIXTURE_DIRS[$moduleName]
+        );
 
         // Деструктор Database кличе $this->pdo->disconnect(), а pdo у заглушки null.
         $database = $this->createStub(Database::class);

@@ -345,17 +345,24 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
     }
 
     /**
-     * Змінні з типом secret у settings.xml усіх увімкнених платіжних модулів.
+     * Змінні з типом secret у settings.xml одного увімкненого платіжного модуля.
      *
-     * @return list<string>
+     * Лише цього модуля: різні модулі можуть мати однойменні змінні, і секрет
+     * одного не має заважати спорожнити текстове поле іншого.
+     *
+     * @param string $paymentModule "Vendor/Module", як у payment_methods.module
+     * @return list<string> порожній, якщо модуль не увімкнений чи не платіжний
      */
-    public function secretPaymentSettingVariables(): array
+    public function secretPaymentSettingVariables(string $paymentModule): array
     {
         $variables = [];
 
         /** @var ModulesEntity $modulesEntity */
         $modulesEntity = $this->entityFactory->get(ModulesEntity::class);
         foreach ($modulesEntity->find(['enabled' => 1, 'type' => MODULE_TYPE_PAYMENT]) as $module) {
+            if ($module->vendor . '/' . $module->module_name !== $paymentModule) {
+                continue;
+            }
             $settings = $this->initModuleSettings($module->vendor, $module->module_name, null, self::PAYMENT_SETTING_TYPES);
             foreach ($settings as $variable => $setting) {
                 if (($setting->type ?? null) === SecretSettings::TYPE) {
@@ -364,7 +371,7 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
             }
         }
 
-        return array_values(array_unique($variables));
+        return $variables;
     }
 
     public function getDeliveryModules($langLabel)
