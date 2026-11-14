@@ -24,6 +24,20 @@ class BackendLanguageParityTest extends TestCase
         $this->assertSame([], array_values(array_diff($keys, $reference)), "у {$language}.php є зайві ключі");
     }
 
+    /**
+     * en.php роками містив підказки навчання російською: англомовний менеджер
+     * бачив їх, а запасна мова для решти перекладів теж en.
+     */
+    public function testEnglishHasNoCyrillic(): void
+    {
+        $cyrillic = array_keys(array_filter(
+            $this->load('en'),
+            static fn (string $value): bool => (bool) preg_match('/\p{Cyrillic}/u', $value)
+        ));
+
+        $this->assertSame([], $cyrillic);
+    }
+
     public static function languageProvider(): array
     {
         return ['en' => ['en'], 'ru' => ['ru']];
