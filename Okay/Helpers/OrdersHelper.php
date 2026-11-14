@@ -5,6 +5,7 @@ namespace Okay\Helpers;
 
 
 use Okay\Core\EntityFactory;
+use Okay\Core\StorefrontPaymentMethods;
 use Okay\Core\Phone;
 use Okay\Core\UserReferer\UserReferer;
 use Okay\Entities\DeliveriesEntity;
@@ -88,8 +89,7 @@ class OrdersHelper
         $paymentMethod = null;
 
         if ($order->payment_method_id) {
-            $paymentMethod = $paymentsEntity->get((int)$order->payment_method_id) ?: null;
-            self::withoutSettings($paymentMethod);
+            $paymentMethod = StorefrontPaymentMethods::withoutSettings($paymentsEntity->get((int)$order->payment_method_id) ?: null);
         }
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethod, func_get_args());
@@ -105,9 +105,7 @@ class OrdersHelper
             'enabled' => 1,
         ]);
 
-        foreach ($paymentMethods as $paymentMethod) {
-            self::withoutSettings($paymentMethod);
-        }
+        StorefrontPaymentMethods::withoutSettings($paymentMethods);
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethods, func_get_args());
     }
@@ -126,11 +124,12 @@ class OrdersHelper
             && empty($order->paid)
             && ($paymentMethodId === null || $this->isPaymentMethodOffered($order, $paymentMethodId));
 
-        return ExtenderFacade::execute(__METHOD__, $allowed, func_get_args());
+        return (bool)ExtenderFacade::execute(__METHOD__, $allowed, func_get_args());
     }
 
     private function isPaymentMethodOffered(object $order, int $paymentMethodId): bool
     {
+        // Захист у глибину: вибірка нижче такі id і так відкидає.
         if ($paymentMethodId <= 0 || empty($order->delivery_id)) {
             return false;
         }
@@ -143,18 +142,6 @@ class OrdersHelper
             'enabled'     => 1,
             'delivery_id' => (int)$order->delivery_id,
         ]);
-    }
-
-    /**
-     * Налаштування способу оплати містять ключі платіжних сервісів, а ці обʼєкти йдуть
-     * у шаблон вітрини. Модулі читають налаштування на сервері через
-     * PaymentsEntity::getPaymentSettings().
-     */
-    private static function withoutSettings(?object $paymentMethod): void
-    {
-        if ($paymentMethod !== null) {
-            unset($paymentMethod->settings);
-        }
     }
     
     public function getOrderPurchasesList($orderId)

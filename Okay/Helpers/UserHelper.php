@@ -4,6 +4,7 @@
 namespace Okay\Helpers;
 
 
+use Okay\Core\StorefrontPaymentMethods;
 use Okay\Core\BrowsedProducts;
 use Okay\Core\Cart;
 use Okay\Core\Comparison;
@@ -46,7 +47,7 @@ class UserHelper
     {
         /** @var PaymentsEntity $paymentsEntity */
         $paymentsEntity = $this->entityFactory->get(PaymentsEntity::class);
-        $payments = $paymentsEntity->mappedBy('id')->find(['enabled'=>1]);
+        $payments = StorefrontPaymentMethods::withoutSettings($paymentsEntity->mappedBy('id')->find(['enabled'=>1]));
         return ExtenderFacade::execute(__METHOD__, $payments, func_get_args());
     }
     
