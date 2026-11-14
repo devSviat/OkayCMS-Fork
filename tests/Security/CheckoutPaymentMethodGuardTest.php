@@ -6,8 +6,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Оформлення з кошика: прихований вибір прибирається до валідації, а замовлення створюється
- * лише після неї. Сам render() тягне всю вітрину, тож його охороняє перевірка коду.
+ * Оформлення з кошика: прихований вибір прибирається до валідації, валідація отримує список
+ * доставок, який кошик пропонує, а замовлення створюється лише після неї. Сам render() тягне
+ * всю вітрину, тож його охороняє перевірка коду.
  */
 class CheckoutPaymentMethodGuardTest extends TestCase
 {
@@ -17,28 +18,33 @@ class CheckoutPaymentMethodGuardTest extends TestCase
 
         $post = strpos($body, '$cartRequest->postOrder()');
         $drop = strpos($body, '$ordersHelper->dropPaymentMethodIfDeliveryOffersNone($order)');
-        $validate = strpos($body, '$validateHelper->getCartValidateError($order)');
+        $offered = strpos($body, '$cartDeliveries = $deliveriesHelper->getCartDeliveriesList($cart, $paymentsHelper->getCartPaymentsList($cart))');
+        $validate = strpos($body, '$validateHelper->getCartValidateError($order, $cartDeliveries)');
         $add = strpos($body, '$ordersHelper->add(');
 
         $this->assertNotFalse($post);
         $this->assertNotFalse($drop, 'оформлення не прибирає прихований вибір способу оплати');
-        $this->assertNotFalse($validate);
+        $this->assertNotFalse($offered, 'валідація не отримує доставок, які пропонує кошик');
+        $this->assertNotFalse($validate, 'валідація не отримує доставок, які пропонує кошик');
         $this->assertNotFalse($add);
 
         $this->assertLessThan($drop, $post);
         $this->assertLessThan($validate, $drop, 'прихований вибір має зникнути до валідації');
+        $this->assertLessThan($validate, $offered);
         $this->assertLessThan($add, $validate, 'замовлення створюється лише після валідації');
         $this->assertSame(1, substr_count($body, '$ordersHelper->add('), 'другий шлях створення оминає валідацію');
     }
 
-    /** Помилка йде у шаблон текстом, тож ключ має бути в кожній мові кожної теми. */
+    /** Помилки йдуть у шаблон текстом, тож ключі мають бути в кожній мові кожної теми. */
     #[DataProvider('themeLanguageFiles')]
-    public function testErrorTextExistsInEveryThemeLanguage(string $file): void
+    public function testErrorTextsExistInEveryThemeLanguage(string $file): void
     {
         $source = file_get_contents($file);
         $this->assertIsString($source);
 
-        $this->assertMatchesRegularExpression("~\\\$lang\\['form_error_payment_method'\\]\\s*=\\s*'[^']+';~", $source, $file);
+        foreach (['form_error_delivery', 'form_error_payment_method'] as $key) {
+            $this->assertMatchesRegularExpression("~\\\$lang\\['" . $key . "'\\]\\s*=\\s*'[^']+';~", $source, $file . ': ' . $key);
+        }
     }
 
     public static function themeLanguageFiles(): iterable

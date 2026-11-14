@@ -125,7 +125,12 @@ class ValidateHelper
         return ExtenderFacade::execute(__METHOD__, $error, func_get_args());
     }
 
-    public function getCartValidateError($order): ?string
+    /**
+     * @param object $order результат CartRequest::postOrder()
+     * @param object[] $cartDeliveries доставки, які кошик пропонує покупцеві: результат
+     *        DeliveriesHelper::getCartDeliveriesList(). Без списку будь-яка доставка відхиляється.
+     */
+    public function getCartValidateError($order, array $cartDeliveries = []): ?string
     {
         $captchaCode =  $this->request->post('captcha_code', 'string');
         
@@ -138,6 +143,8 @@ class ValidateHelper
             $error = 'empty_phone';
         } elseif (!$this->validator->isComment($order->comment)) {
             $error = 'empty_comment';
+        } elseif (!empty($order->delivery_id) && !self::isDeliveryOffered((int)$order->delivery_id, $cartDeliveries)) {
+            $error = $this->frontTranslations->getTranslation('form_error_delivery') ?: 'delivery';
         } elseif (!empty($order->payment_method_id)
             && !$this->ordersHelper->isPaymentMethodOffered($order, (int)$order->payment_method_id)
         ) {
@@ -151,6 +158,18 @@ class ValidateHelper
         return ExtenderFacade::execute(__METHOD__, $error, func_get_args());
     }
     
+    /** Модулі можуть переставити ключі списку, тож збіг шукається за id доставки. */
+    private static function isDeliveryOffered(int $deliveryId, array $cartDeliveries): bool
+    {
+        foreach ($cartDeliveries as $delivery) {
+            if (is_object($delivery) && (int)($delivery->id ?? 0) === $deliveryId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getCallbackValidateError($callback): ?string
     {
         $captchaCode =  $this->request->post('captcha_code', 'string');

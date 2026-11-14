@@ -46,19 +46,19 @@ class CheckoutPaymentMethodTest extends TestCase
 
     public function testOfferedMethodPasses(): void
     {
-        $this->assertNull($this->validator()->getCartValidateError($this->order(self::OFFERED)));
+        $this->assertNull($this->validator()->getCartValidateError($this->order(self::OFFERED), self::cartDeliveries()));
     }
 
     public function testDisabledMethodIsAnError(): void
     {
-        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::DISABLED)));
+        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::DISABLED), self::cartDeliveries()));
     }
 
     public function testMethodOfAnotherDeliveryIsAnError(): void
     {
-        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::FOR_OTHER_DELIVERY)));
+        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::FOR_OTHER_DELIVERY), self::cartDeliveries()));
         $this->assertNull(
-            $this->validator()->getCartValidateError($this->order(self::FOR_OTHER_DELIVERY, self::OTHER_DELIVERY)),
+            $this->validator()->getCartValidateError($this->order(self::FOR_OTHER_DELIVERY, self::OTHER_DELIVERY), self::cartDeliveries()),
             'control: the same method with its own delivery'
         );
     }
@@ -66,13 +66,13 @@ class CheckoutPaymentMethodTest extends TestCase
     /** Доставку й спосіб підмінено в одному POST: рішення бере доставку саме з цього замовлення. */
     public function testDeliverySwitchedInTheSamePostIsCheckedAgainstThatDelivery(): void
     {
-        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::OFFERED, self::OTHER_DELIVERY)));
+        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::OFFERED, self::OTHER_DELIVERY), self::cartDeliveries()));
     }
 
     #[DataProvider('foreignIds')]
     public function testUnknownOrNegativeIdIsAnError(int $id): void
     {
-        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order($id)));
+        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order($id), self::cartDeliveries()));
     }
 
     public static function foreignIds(): array
@@ -90,7 +90,7 @@ class CheckoutPaymentMethodTest extends TestCase
             $order->$name = $value;
         }
 
-        $this->assertNull($this->validator()->getCartValidateError($order));
+        $this->assertNull($this->validator()->getCartValidateError($order, self::cartDeliveries()));
     }
 
     public static function missingMethods(): array
@@ -106,7 +106,7 @@ class CheckoutPaymentMethodTest extends TestCase
     /** Без ключа в темі помилка однаково має бути: null тут означав би «перевірку пройдено». */
     public function testErrorSurvivesAThemeWithoutTheTranslation(): void
     {
-        $error = $this->validator(translation: null)->getCartValidateError($this->order(self::DISABLED));
+        $error = $this->validator(translation: null)->getCartValidateError($this->order(self::DISABLED), self::cartDeliveries());
 
         $this->assertNotNull($error);
         $this->assertNotSame('', $error);
@@ -118,7 +118,7 @@ class CheckoutPaymentMethodTest extends TestCase
         $order = $this->order(self::DISABLED);
         $order->name = '';
 
-        $this->assertSame('empty_name', $this->validator()->getCartValidateError($order));
+        $this->assertSame('empty_name', $this->validator()->getCartValidateError($order, self::cartDeliveries()));
     }
 
     public function testValidatorDoesNotAskTheHelperWithoutAMethod(): void
@@ -126,7 +126,7 @@ class CheckoutPaymentMethodTest extends TestCase
         $orders = $this->createMock(OrdersHelper::class);
         $orders->expects($this->never())->method('isPaymentMethodOffered');
 
-        $this->assertNull($this->validator(orders: $orders)->getCartValidateError($this->order(0)));
+        $this->assertNull($this->validator(orders: $orders)->getCartValidateError($this->order(0), self::cartDeliveries()));
     }
 
     public function testValidatorAsksTheHelperWithTheOrderAndTheMethod(): void
@@ -135,7 +135,7 @@ class CheckoutPaymentMethodTest extends TestCase
         $orders = $this->createMock(OrdersHelper::class);
         $orders->expects($this->once())->method('isPaymentMethodOffered')->with($order, self::OFFERED)->willReturn(false);
 
-        $this->assertSame(self::ERROR_TEXT, $this->validator(orders: $orders)->getCartValidateError($order));
+        $this->assertSame(self::ERROR_TEXT, $this->validator(orders: $orders)->getCartValidateError($order, self::cartDeliveries()));
     }
 
     /**
@@ -147,7 +147,7 @@ class CheckoutPaymentMethodTest extends TestCase
         $order = $this->ordersHelper()->dropPaymentMethodIfDeliveryOffersNone($this->order(self::OFFERED, self::DELIVERY_WITHOUT_PAYMENTS));
 
         $this->assertSame(0, $order->payment_method_id);
-        $this->assertNull($this->validator()->getCartValidateError($order));
+        $this->assertNull($this->validator()->getCartValidateError($order, self::cartDeliveries()));
     }
 
     public function testOrderWithoutDeliveryDropsTheChoice(): void
@@ -183,6 +183,22 @@ class CheckoutPaymentMethodTest extends TestCase
                 'method ' . $id
             );
         }
+    }
+
+    /**
+     * Доставки, які кошик пропонує (як їх віддає DeliveriesHelper::getCartDeliveriesList()):
+     * вимкненої DISABLED_DELIVERY тут немає.
+     *
+     * @return array<int, object>
+     */
+    private static function cartDeliveries(): array
+    {
+        $deliveries = [];
+        foreach ([self::DELIVERY, self::OTHER_DELIVERY, self::DELIVERY_WITHOUT_PAYMENTS] as $id) {
+            $deliveries[$id] = (object)['id' => $id];
+        }
+
+        return $deliveries;
     }
 
     private function order(int $paymentMethodId, int $deliveryId = self::DELIVERY): object
