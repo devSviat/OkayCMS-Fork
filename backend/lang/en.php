@@ -774,6 +774,7 @@ $lang['left_pages_title'] = 'Pages';
 $lang['left_blog'] = 'Blog';
 $lang['left_blog_title'] = 'Blog';
 $lang['left_blog_categories_title'] = 'Articles categories';
+$lang['left_authors_title'] = 'Authors';
 $lang['left_comments'] = 'Feedback';
 $lang['left_comments_title'] = 'Comments';
 $lang['left_feedbacks_title'] = 'Feedback';
