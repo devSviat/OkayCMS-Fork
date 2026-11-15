@@ -28,6 +28,7 @@ class FeaturesValuesEntity extends Entity
     protected static $defaultOrderFields = [
         'position ASC',
         'value ASC',
+        'id ASC',
     ];
     
     protected static $searchFields = [
