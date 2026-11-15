@@ -607,11 +607,7 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
             }
         }
 
-        $parameters = $this->module->getParameters($vendor, $moduleName);
-        $container->bindParameters($parameters);
-
-        $services = $this->module->getServices($vendor, $moduleName);
-        $container->bindServices($services);
+        $this->bindModuleServices($vendor, $moduleName);
 
         $plugins = $this->module->getSmartyPlugins($vendor, $moduleName);
         $container->bindServices($plugins);
@@ -637,6 +633,18 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         }
 
         return $backendControllersList;
+    }
+
+    /**
+     * Реєструє в DI-контейнері параметри й сервіси модуля без виклику його init().
+     * Installer викликає це перед install() і update_*: модуль, якого ще немає
+     * в ok_modules, не запущено, а міграції можуть брати власні сервіси модуля.
+     */
+    public function bindModuleServices(string $vendor, string $moduleName): void
+    {
+        $container = OkayContainer::getInstance();
+        $container->bindParameters($this->module->getParameters($vendor, $moduleName));
+        $container->bindServices($this->module->getServices($vendor, $moduleName));
     }
 
     public function registerSmartyPlugins()

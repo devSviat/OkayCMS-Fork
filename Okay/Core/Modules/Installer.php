@@ -14,11 +14,14 @@ class Installer
 
     /** @var Module */
     private $module;
+
+    private Modules $modules;
     
-    public function __construct(EntityFactory $entityFactory, Module $module)
+    public function __construct(EntityFactory $entityFactory, Module $module, Modules $modules)
     {
         $this->modulesEntity = $entityFactory->get(ModulesEntity::class);
         $this->module = $module;
+        $this->modules = $modules;
     }
 
     public function install($fullModuleName)
@@ -54,21 +57,31 @@ class Installer
             }
             
             if ($initClassName = $this->module->getInitClassName($vendor, $moduleName)) {
-                /** @var AbstractInit $initObject */
-                $initObject = $this->getInitObject($initClassName, $moduleId, $vendor, $moduleName);
-                $initObject->install();
+                // Рядок із версією з module.json мусить зникнути, якщо install() чи update_*
+                // впали: інакше модуль числиться оновленим без міграцій, а повторне
+                // встановлення впирається в «already exists». Стан після видалення рядка
+                // той самий, що після дії «видалити» в адмінці.
+                try {
+                    $this->modules->bindModuleServices($vendor, $moduleName);
 
-                // Апдейты при установке вызываем всегда начиная с версии 1.0.0
-                $updateMethods = $this->getUpdateMethods($initClassName, $moduleParams->getMathVersion(), $this->module->getMathVersion('1.0.0'));
+                    /** @var AbstractInit $initObject */
+                    $initObject = $this->getInitObject($initClassName, $moduleId, $vendor, $moduleName);
+                    $initObject->install();
 
-                // Вызываем поочередно методы для обновления модуля
-                if (!empty($updateMethods)) {
-                    $initObject = $this->getInitObject($initClassName, $moduleId, $module->vendor, $module->module_name);
-                    foreach ($updateMethods as $method) {
-                        $initObject->$method();
+                    // Апдейты при установке вызываем всегда начиная с версии 1.0.0
+                    $updateMethods = $this->getUpdateMethods($initClassName, $moduleParams->getMathVersion(), $this->module->getMathVersion('1.0.0'));
+
+                    // Вызываем поочередно методы для обновления модуля
+                    if (!empty($updateMethods)) {
+                        $initObject = $this->getInitObject($initClassName, $moduleId, $module->vendor, $module->module_name);
+                        foreach ($updateMethods as $method) {
+                            $initObject->$method();
+                        }
                     }
+                } catch (\Throwable $e) {
+                    $this->modulesEntity->delete([$moduleId]);
+                    throw $e;
                 }
-                
             }
         }
         

@@ -551,6 +551,7 @@ $services = [
         'arguments' => [
             new SR(EntityFactory::class),
             new SR(Module::class),
+            new SR(Modules::class),
         ],
     ],
     EntityMigrator::class => [

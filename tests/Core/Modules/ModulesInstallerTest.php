@@ -7,6 +7,7 @@ use Okay\Core\EntityFactory;
 use Okay\Core\Modules\DTO\ModuleParamsDTO;
 use Okay\Core\Modules\Installer;
 use Okay\Core\Modules\Module;
+use Okay\Core\Modules\Modules;
 use Okay\Entities\ModulesEntity;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -69,7 +70,7 @@ class ModulesInstallerTest extends TestCase
         $reflector = new \ReflectionClass(Installer::class);
         $method = $reflector->getMethod('getUpdateMethods');
 
-        $installer = new Installer($entityFactoryStub, $moduleStub);
+        $installer = new Installer($entityFactoryStub, $moduleStub, $this->createStub(Modules::class));
 
         $actualResult = $method->invokeArgs($installer, [StubModuleInitClass::class, $moduleCurrentMathVersion, $moduleInstallMathVersion]);
         
@@ -149,7 +150,7 @@ class ModulesInstallerTest extends TestCase
 
         // Экстендим через анонимный класс наш установщик, чтобы передать ему мок класса Init
         // он там нужен для контроля вызова методов апдейтов
-        $installer = new class($entityFactoryStub, $moduleStub) extends Installer {
+        $installer = new class($entityFactoryStub, $moduleStub, $this->createStub(Modules::class)) extends Installer {
             private $initMock;
             
             public function setInitMock($initMock)
@@ -257,7 +258,7 @@ class ModulesInstallerTest extends TestCase
 
         // Экстендим через анонимный класс наш установщик, чтобы передать ему мок класса Init
         // он там нужен для контроля вызова методов апдейтов
-        $installer = new class($entityFactoryStub, $moduleStub) extends Installer {
+        $installer = new class($entityFactoryStub, $moduleStub, $this->createStub(Modules::class)) extends Installer {
             private $initMock;
 
             public function setInitMock($initMock)
