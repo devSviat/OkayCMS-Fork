@@ -2,6 +2,7 @@
 
 namespace Seo;
 
+use Okay\Helpers\OrdersHelper;
 use Okay\Helpers\ValidateHelper;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -90,6 +91,6 @@ class ReviewRatingRequiredTest extends TestCase
             }
         };
 
-        return new ValidateHelper($validator, $settings, $request, $translations);
+        return new ValidateHelper($validator, $settings, $request, $translations, $this->createStub(OrdersHelper::class));
     }
 }
