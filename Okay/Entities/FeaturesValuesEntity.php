@@ -40,6 +40,15 @@ class FeaturesValuesEntity extends Entity
     protected static $langTable = 'features_values';
     protected static $tableAlias = 'fv';
 
+    /** Умови на товар, які режим існування переносить у підзапит. */
+    private const array EXISTENCE_CONDITIONS = ['in_stock'];
+
+    /** Умови на товар, які читає старий шлях; поза EXISTENCE_CONDITIONS вони вимикають режим. */
+    private const array PRODUCTS_CONDITIONS = ['visible', 'in_stock', 'have_products_in_categories'];
+
+    /** Фільтри, що читають pf/p або звужують по товарах власним SQL: з ними лишається старий шлях. */
+    private const array EXISTENCE_BLOCKERS = ['features', 'product_id', 'brand_id', 'other_filter', 'price', 'product_keyword', 'brand'];
+
     /** @var bool Чи роздув поточний find() вибірку джойном pf. Поза find() — консервативне true. */
     private $productsValuesJoined = true;
 
@@ -88,6 +97,11 @@ class FeaturesValuesEntity extends Entity
     public function find(array $filter = [])
     {
         $this->select->groupBy([$this->getTableAlias().'.id']);
+
+        [$filter, $productsConditions] = $this->extractProductsExistence($filter);
+        if ($productsConditions !== []) {
+            $this->whereProductsExist($productsConditions);
+        }
 
         [$joinProductsValues, $joinFeatures, $joinProducts] = $this->resolveFindJoins($filter);
         $this->productsValuesJoined = $joinProductsValues;
@@ -151,6 +165,90 @@ class FeaturesValuesEntity extends Entity
             || isset($filter['other_filter']);
 
         return [$productsValues, isset($filter['category_id']), $products];
+    }
+
+    /**
+     * Старий шлях джойнить pf ⋈ p до кожного зв'язку значення й схлопує їх GROUP BY.
+     * Коли у фільтрі лише умови на товар, досить знайти один підхожий товар на
+     * значення, тож їх переносимо в один підзапит (whereProductsExist()).
+     *
+     * Модульний фільтр вимикає режим за будь-якого імені, навіть з іменем умови:
+     * його SQL ядру невідомий.
+     *
+     * @param array $filter
+     * @return array{0: array, 1: array} [решта фільтра, умови для підзапиту]
+     */
+    private function extractProductsExistence(array $filter): array
+    {
+        $legacy = [$filter, []];
+
+        foreach (array_keys($filter) as $filterName) {
+            if ($this->modulesFilters->hasFilter(static::class, $filterName)) {
+                return $legacy;
+            }
+        }
+
+        foreach (self::EXISTENCE_BLOCKERS as $blocker) {
+            if (isset($filter[$blocker])) {
+                return $legacy;
+            }
+        }
+
+        $conditions = [];
+        foreach (self::PRODUCTS_CONDITIONS as $condition) {
+            if (!isset($filter[$condition])) {
+                continue;
+            }
+            if (!in_array($condition, self::EXISTENCE_CONDITIONS, true)) {
+                return $legacy;
+            }
+            $conditions[$condition] = $filter[$condition];
+            unset($filter[$condition]);
+        }
+
+        return [$filter, $conditions];
+    }
+
+    /**
+     * Усі умови стоять в одному підзапиті, бо старий шлях вимагає, щоб їх виконував
+     * той самий товар. Скаляр із LIMIT, а не EXISTS: MariaDB не робить із нього
+     * semi-join і лишає залежний підзапит по pfe.value_id.
+     *
+     * Аліаси й bind-імена не перетинаються з зовнішнім запитом: масиви Aura.Sql
+     * розгортає через str_replace, тож спільний префікс зіпсував би інший bind.
+     *
+     * @param array $conditions умови з extractProductsExistence()
+     */
+    private function whereProductsExist(array $conditions): void
+    {
+        $exists = $this->queryFactory->newSelect();
+        $exists->cols(['1'])
+            ->from('__products_features_values AS pfe')
+            ->where('pfe.value_id = fv.id')
+            ->limit(1);
+
+        // pe лише там, де старий шлях джойнив p: інакше осиротілий pf без товару
+        // поводився б не так, як раніше.
+        if (isset($conditions['visible']) || isset($conditions['in_stock'])) {
+            $productsCond = 'pe.id = pfe.product_id';
+            if (isset($conditions['visible'])) {
+                $productsCond .= ' AND pe.visible = :exv_visible';
+                $exists->bindValue('exv_visible', (int)$conditions['visible']);
+            }
+            $exists->join('INNER', '__products AS pe', $productsCond);
+        }
+
+        if (isset($conditions['have_products_in_categories'])) {
+            $exists->join('INNER', '__products_categories AS pce', 'pce.product_id = pfe.product_id AND pce.category_id IN (:exc_categories)')
+                ->bindValue('exc_categories', (array)$conditions['have_products_in_categories']);
+        }
+
+        // Як і filter__in_stock, умова діє за самою присутністю ключа, значення не важить.
+        if (isset($conditions['in_stock'])) {
+            $exists->where('(SELECT 1 FROM __variants pve WHERE pve.product_id = pe.id AND (pve.stock IS NULL OR pve.stock > 0) LIMIT 1) = 1');
+        }
+
+        $this->select->where('(:products_exist_subquery) = 1', ['products_exist_subquery' => $exists]);
     }
 
     protected function filter__in_stock()
@@ -272,8 +370,9 @@ class FeaturesValuesEntity extends Entity
 
     protected function filter__have_products_in_categories($categoriesIds)
     {
-        $this->select->join('INNER', '__products_categories AS pc', 'pc.product_id=pf.product_id AND pc.category_id IN (:category_id)')
-            ->bindValue('category_id', (array)$categoriesIds);
+        // Окреме ім'я: :category_id уже зайняв filter__category_id, і другий bind перезаписав би перший.
+        $this->select->join('INNER', '__products_categories AS pc', 'pc.product_id=pf.product_id AND pc.category_id IN (:hpc_categories)')
+            ->bindValue('hpc_categories', (array)$categoriesIds);
     }
     
     protected function filter__visible($visible)

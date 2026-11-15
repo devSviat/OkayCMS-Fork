@@ -5,8 +5,11 @@ namespace Entities;
 use Aura\Sql\ExtendedPdo;
 use Okay\Core\Config;
 use Okay\Core\EntityFactory;
+use Okay\Core\Modules\AbstractModuleEntityFilter;
+use Okay\Core\Modules\ModulesEntitiesFilters;
 use Okay\Core\ServiceLocator;
 use Okay\Entities\FeaturesValuesEntity;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,9 +18,15 @@ use PHPUnit\Framework\TestCase;
  * пропускається, де її немає (CI без бази).
  *
  * Фікстура створюється в транзакції й відкочується, тож база лишається як була.
+ *
+ * Еталон — той самий find(), відправлений старим шляхом порожнім модульним
+ * фільтром: так еталон міняється разом зі старим шляхом, а не застигає в
+ * рукописному SQL.
  */
 class FeaturesValuesExistenceDatabaseTest extends TestCase
 {
+    private const PROBE = 'legacy_path_probe';
+
     private ExtendedPdo $pdo;
     private string $px;
 
@@ -41,6 +50,8 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
 
         $this->pdo->beginTransaction();
         $this->buildFixture();
+
+        $this->modulesFilters()->registerFilter(FeaturesValuesEntity::class, self::PROBE, LegacyPathProbeFilter::class, 'apply');
     }
 
     protected function tearDown(): void
@@ -48,8 +59,94 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         if (isset($this->pdo) && $this->pdo->inTransaction()) {
             $this->pdo->rollBack();
         }
+
+        // Реєстр модульних фільтрів — спільний сервіс процесу, тож пробник не має пережити тест.
+        $registry = new \ReflectionProperty(ModulesEntitiesFilters::class, 'modulesFilters');
+        $filters = $registry->getValue($this->modulesFilters());
+        unset($filters[FeaturesValuesEntity::class][self::PROBE]);
+        $registry->setValue($this->modulesFilters(), $filters);
     }
 
+    public function testLegacyProbeReallyForcesOldPath(): void
+    {
+        $filter = ['feature_id' => $this->featureIds(), 'in_stock' => true];
+
+        $existence = $this->findSql($filter);
+        $legacy = $this->findSql($filter + [self::PROBE => true]);
+
+        self::assertStringContainsString('pfe', $existence);
+        self::assertDoesNotMatchRegularExpression('/AS `?pf`?\s/', $existence);
+        self::assertMatchesRegularExpression('/AS `?pf`?\s/', $legacy);
+        self::assertMatchesRegularExpression('/AS `?p`?\s/', $legacy);
+        self::assertStringNotContainsString('pfe', $legacy);
+    }
+
+    /** @return array<string, array{bool}> */
+    public static function categoryProvider(): array
+    {
+        return ['без категорії' => [false], 'з категорією' => [true]];
+    }
+
+    #[DataProvider('categoryProvider')]
+    public function testInStockMatchesLegacyPath(bool $withCategory): void
+    {
+        $filter = ['feature_id' => $this->featureIds(), 'in_stock' => true];
+        if ($withCategory) {
+            $filter['category_id'] = [$this->ids['category_parent'], $this->ids['category_child']];
+        }
+
+        $found = $this->foundIds($filter);
+
+        self::assertSame($this->foundIds($filter + [self::PROBE => true]), $found);
+        self::assertContains($this->ids['value_in_stock'], $found);
+        self::assertContains($this->ids['value_null_stock'], $found);
+        self::assertNotContains($this->ids['value_no_stock'], $found, 'без умови на варіанти фільтр нічого не відсікає');
+    }
+
+    /** filter__in_stock умикає умову самою присутністю ключа, тож false фільтрує так само, як true. */
+    public function testInStockFalseStillFilters(): void
+    {
+        $filter = ['feature_id' => $this->featureIds(), 'in_stock' => true];
+        $expected = $this->foundIds($filter);
+
+        $filter['in_stock'] = false;
+        self::assertSame($expected, $this->foundIds($filter), 'новий режим');
+        self::assertSame($expected, $this->foundIds($filter + [self::PROBE => true]), 'еталон');
+    }
+
+    /**
+     * Властивість own призначено лише батьківській категорії, а товар з echo лежить
+     * в іншій. Обидва набори враховано — лишається рівно echo; якщо один bind
+     * перезаписав інший, результат порожній або без echo.
+     */
+    public function testCategoryBindsDoNotCollide(): void
+    {
+        $found = $this->foundIds([
+            'feature_id' => $this->featureIds(),
+            'category_id' => [$this->ids['category_parent']],
+            'have_products_in_categories' => [$this->ids['category_other']],
+            self::PROBE => true,
+        ]);
+
+        self::assertSame([$this->ids['value_other_cat']], $found);
+    }
+
+    /** Рядок pf без товару: старий шлях без p його не бачить, тож і підзапит мусить іти через pe. */
+    public function testOrphanLinkMatchesLegacyPath(): void
+    {
+        $filter = ['feature_id' => $this->featureIds(), 'in_stock' => true];
+
+        $found = $this->foundIds($filter);
+
+        self::assertNotContains($this->ids['value_orphan'], $found);
+        self::assertNotContains($this->ids['value_unused'], $found);
+        self::assertSame($this->foundIds($filter + [self::PROBE => true]), $found);
+    }
+
+    /**
+     * Порядок тут збігається і без id у сортуванні: на цих даних оптимізатор
+     * віддає нічиї в порядку id. Справжній гард — FeaturesValuesOrderTest.
+     */
     public function testTiesOrderedById(): void
     {
         $found = $this->entity()->find(['feature_id' => $this->ids['feature_shared']]);
@@ -64,6 +161,39 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         self::assertSame([$this->ids['value_tie_a'], $this->ids['value_tie_b']], $tieIds);
     }
 
+    /** @return int[] */
+    private function featureIds(): array
+    {
+        return [$this->ids['feature_shared'], $this->ids['feature_own']];
+    }
+
+    /**
+     * @param array<string, mixed> $filter
+     * @return int[]
+     */
+    private function foundIds(array $filter): array
+    {
+        return array_map(static fn (object $value): int => (int) $value->id, $this->entity()->find($filter));
+    }
+
+    /** @param array<string, mixed> $filter */
+    private function findSql(array $filter): string
+    {
+        ob_start();
+        try {
+            $this->entity()->debug()->find($filter);
+        } finally {
+            $sql = (string) ob_get_clean();
+        }
+
+        return $sql;
+    }
+
+    private function modulesFilters(): ModulesEntitiesFilters
+    {
+        return ServiceLocator::getInstance()->getService(ModulesEntitiesFilters::class);
+    }
+
     private function entity(): FeaturesValuesEntity
     {
         return ServiceLocator::getInstance()->getService(EntityFactory::class)->get(FeaturesValuesEntity::class);
@@ -71,7 +201,7 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
 
     /**
      * Дві категорії (батьківська й дочірня), дві властивості (спільна для обох
-     * і тільки батьківська), вісім значень і товари для кожного випадку, який
+     * і тільки батьківська), дев'ять значень і товари для кожного випадку, який
      * розрізняють умови наявності й видимості.
      */
     private function buildFixture(): void
@@ -99,6 +229,7 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
             'value_hidden'     => $this->value($own, 'delta', 2),
             'value_other_cat'  => $this->value($own, 'echo', 3),
             'value_unused'     => $this->value($own, 'foxtrot', 4),
+            'value_orphan'     => $this->value($own, 'golf', 5),
         ];
 
         $this->product('product_in_stock', $parent, true, 5, ['value_in_stock', 'value_tie_a']);
@@ -110,7 +241,7 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         // Товару немає, а варіант і рядок зв'язку лишилися: так виглядає база після ручного видалення.
         $orphanProduct = (int) $this->pdo->fetchValue("SELECT COALESCE(MAX(id), 0) + 1000000 FROM {$this->px}products");
         $this->insert('variants', ['product_id' => $orphanProduct, 'stock' => 5, 'price' => 1]);
-        $this->insert('products_features_values', ['product_id' => $orphanProduct, 'value_id' => $this->ids['value_unused']]);
+        $this->insert('products_features_values', ['product_id' => $orphanProduct, 'value_id' => $this->ids['value_orphan']]);
         $this->ids['product_orphan'] = $orphanProduct;
     }
 
@@ -170,5 +301,13 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         );
 
         return (int) $this->pdo->lastInsertId();
+    }
+}
+
+/** Порожній модульний фільтр: нічого не звужує, лише відправляє find() старим шляхом. */
+class LegacyPathProbeFilter extends AbstractModuleEntityFilter
+{
+    public function apply($value, $filter): void
+    {
     }
 }
