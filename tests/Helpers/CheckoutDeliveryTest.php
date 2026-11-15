@@ -118,12 +118,13 @@ class CheckoutDeliveryTest extends TestCase
         $this->assertNotSame('', $error);
     }
 
-    public function testContactErrorsStillComeFirst(): void
+    /** Помилку контактів розширення можуть зняти, тож вона не може затулити перевірку доставки. */
+    public function testDeliveryErrorComesBeforeContactErrors(): void
     {
         $order = $this->order(self::DISABLED);
         $order->name = '';
 
-        $this->assertSame('empty_name', $this->validator()->getCartValidateError($order, $this->cartDeliveries()));
+        $this->assertSame(self::DELIVERY_ERROR, $this->validator()->getCartValidateError($order, $this->cartDeliveries()));
     }
 
     /** @return array<int, object> */
@@ -131,7 +132,7 @@ class CheckoutDeliveryTest extends TestCase
     {
         $deliveries = [];
         foreach ([self::OFFERED, ...$extra] as $id) {
-            $deliveries[$id] = (object)['id' => (string)$id, 'enabled' => '1'];
+            $deliveries[$id] = (object)['id' => (string)$id, 'enabled' => '1', 'payment_methods_ids' => [self::METHOD]];
         }
 
         return $deliveries;

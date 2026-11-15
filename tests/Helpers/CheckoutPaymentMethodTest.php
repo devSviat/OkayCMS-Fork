@@ -29,6 +29,7 @@ class CheckoutPaymentMethodTest extends TestCase
     private const int DISABLED = 11;
     private const int FOR_OTHER_DELIVERY = 12;
     private const int DISABLED_ONLY = 13;
+    private const int NOT_SHOWN = 14;
 
     private const string ERROR_TEXT = 'Оберіть спосіб оплати зі списку';
 
@@ -42,6 +43,7 @@ class CheckoutPaymentMethodTest extends TestCase
         self::DISABLED           => [0, [self::DELIVERY]],
         self::FOR_OTHER_DELIVERY => [1, [self::OTHER_DELIVERY]],
         self::DISABLED_ONLY      => [0, [self::DELIVERY_WITHOUT_PAYMENTS]],
+        self::NOT_SHOWN          => [1, [self::DELIVERY]],
     ];
 
     public function testOfferedMethodPasses(): void
@@ -112,13 +114,28 @@ class CheckoutPaymentMethodTest extends TestCase
         $this->assertNotSame('', $error);
     }
 
-    /** Перевірки покупця йдуть раніше: тема показує ту помилку, яку вміє назвати. */
-    public function testContactErrorsStillComeFirst(): void
+    /** Помилку контактів розширення можуть зняти, тож вона не може затулити перевірку способу. */
+    public function testPaymentErrorComesBeforeContactErrors(): void
     {
         $order = $this->order(self::DISABLED);
         $order->name = '';
 
-        $this->assertSame('empty_name', $this->validator()->getCartValidateError($order, self::cartDeliveries()));
+        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($order, self::cartDeliveries()));
+        $this->assertSame('empty_name', $this->validator()->getCartValidateError($this->order(self::OFFERED, name: ''), self::cartDeliveries()), 'control');
+    }
+
+    /**
+     * Звʼязку в базі мало: спосіб має бути і в списку, який кошик показав покупцеві для цієї
+     * доставки (модуль міг прибрати його з getCartPaymentsList()).
+     */
+    public function testMethodMissingFromTheListTheBuyerSawIsAnError(): void
+    {
+        $this->assertTrue($this->ordersHelper()->isPaymentMethodOffered($this->order(self::NOT_SHOWN), self::NOT_SHOWN), 'control: linked and enabled');
+        $this->assertSame(self::ERROR_TEXT, $this->validator()->getCartValidateError($this->order(self::NOT_SHOWN), self::cartDeliveries()));
+
+        $shown = self::cartDeliveries();
+        $shown[self::DELIVERY]->payment_methods_ids[] = self::NOT_SHOWN;
+        $this->assertNull($this->validator()->getCartValidateError($this->order(self::NOT_SHOWN), $shown), 'control: once the cart shows it');
     }
 
     public function testValidatorDoesNotAskTheHelperWithoutAMethod(): void
@@ -139,8 +156,8 @@ class CheckoutPaymentMethodTest extends TestCase
     }
 
     /**
-     * Доставка без способів оплати: тема ховає блок оплати, але позначена прихована радіокнопка
-     * все одно надсилається. Покупець вибору не бачив, тож замовлення лишається без способу.
+     * Доставка без способів оплати: тема ховає блок оплати, а без JS позначена прихована
+     * радіокнопка все одно надсилається. Покупець вибору не бачив, тож замовлення лишається без способу.
      */
     public function testDeliveryWithoutPaymentsDropsTheHiddenChoice(): void
     {
@@ -193,18 +210,18 @@ class CheckoutPaymentMethodTest extends TestCase
      */
     private static function cartDeliveries(): array
     {
-        $deliveries = [];
-        foreach ([self::DELIVERY, self::OTHER_DELIVERY, self::DELIVERY_WITHOUT_PAYMENTS] as $id) {
-            $deliveries[$id] = (object)['id' => $id];
-        }
-
-        return $deliveries;
+        // payment_methods_ids — увімкнені способи, повʼязані з доставкою, як їх показує кошик.
+        return [
+            self::DELIVERY                  => (object)['id' => self::DELIVERY, 'payment_methods_ids' => [self::OFFERED]],
+            self::OTHER_DELIVERY            => (object)['id' => self::OTHER_DELIVERY, 'payment_methods_ids' => [self::FOR_OTHER_DELIVERY]],
+            self::DELIVERY_WITHOUT_PAYMENTS => (object)['id' => self::DELIVERY_WITHOUT_PAYMENTS, 'payment_methods_ids' => []],
+        ];
     }
 
-    private function order(int $paymentMethodId, int $deliveryId = self::DELIVERY): object
+    private function order(int $paymentMethodId, int $deliveryId = self::DELIVERY, string $name = 'Іван'): object
     {
         return (object)[
-            'name'              => 'Іван',
+            'name'              => $name,
             'last_name'         => '',
             'email'             => 'ivan@example.com',
             'phone'             => '',
