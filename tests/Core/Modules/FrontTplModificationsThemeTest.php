@@ -24,20 +24,27 @@ use Smarty\Smarty;
  */
 class FrontTplModificationsThemeTest extends TestCase
 {
-    // Справжні теми з design/: FrontTemplateConfig::getTheme() перевіряє тему перегляду саме там.
-    private const string ACTIVE_THEME = 'okay_shop';
-    private const string PREVIEW_THEME = 'vibe_shop';
+    private const string ACTIVE_THEME = 'storefront';
 
+    // FrontTemplateConfig::getTheme() вимикає тему перегляду, якої немає в справжньому design/,
+    // тож вона мусить бути наявною темою репозиторію.
+    private string $previewTheme;
     private string $fixtureDir;
     private string $designDir;
     private int $paramsReads = 0;
 
     protected function setUp(): void
     {
+        $realThemes = glob(dirname(__DIR__, 3) . '/design/*/html', GLOB_ONLYDIR) ?: [];
+        if ($realThemes === []) {
+            $this->markTestSkipped('у design/ немає жодної теми');
+        }
+        $this->previewTheme = basename(dirname($realThemes[0]));
+
         $this->fixtureDir = sys_get_temp_dir() . '/tplmods-theme-' . bin2hex(random_bytes(6));
         $this->designDir = $this->fixtureDir . '/design/';
 
-        foreach ([self::ACTIVE_THEME, self::PREVIEW_THEME] as $theme) {
+        foreach ([self::ACTIVE_THEME, $this->previewTheme] as $theme) {
             $this->writeModuleFile($this->designDir . $theme, 'Test/First', "first from {$theme}");
             $this->writeModuleFile($this->designDir . $theme, 'Test/Second', "second from {$theme}");
         }
@@ -55,14 +62,14 @@ class FrontTplModificationsThemeTest extends TestCase
     {
         $storefront = $this->modules();
         $this->assertSame(
-            [['first from okay_shop', 'Test/First'], ['second from okay_shop', 'Test/Second'], ['plain <b>', 'Test/Second']],
+            [[$this->active('first'), 'Test/First'], [$this->active('second'), 'Test/Second'], ['plain <b>', 'Test/Second']],
             $this->summary($storefront->getFrontModulesTplModifications())
         );
 
         $_COOKIE['admin_login'] = 'admin';
         $admin = $this->modules();
         $this->assertSame(
-            [['first from vibe_shop', 'Test/First'], ['second from vibe_shop', 'Test/Second'], ['plain <b>', 'Test/Second']],
+            [[$this->preview('first'), 'Test/First'], [$this->preview('second'), 'Test/Second'], ['plain <b>', 'Test/Second']],
             $this->summary($admin->getFrontModulesTplModifications())
         );
     }
@@ -85,9 +92,9 @@ class FrontTplModificationsThemeTest extends TestCase
         $_COOKIE['admin_login'] = 'admin';
         $modules = $this->modules();
 
-        $this->assertSame('first from vibe_shop', $this->firstValue($modules->getFrontModulesTplModifications()));
-        $this->assertSame('first from okay_shop', $this->firstValue($modules->getFrontModulesTplModifications(self::ACTIVE_THEME)));
-        $this->assertSame('first from vibe_shop', $this->firstValue($modules->getFrontModulesTplModifications()));
+        $this->assertSame($this->preview('first'), $this->firstValue($modules->getFrontModulesTplModifications()));
+        $this->assertSame($this->active('first'), $this->firstValue($modules->getFrontModulesTplModifications(self::ACTIVE_THEME)));
+        $this->assertSame($this->preview('first'), $this->firstValue($modules->getFrontModulesTplModifications()));
     }
 
     public function testExplicitThemeBeforeNullDoesNotLeakIntoCurrentRequest(): void
@@ -96,10 +103,10 @@ class FrontTplModificationsThemeTest extends TestCase
         $modules = $this->modules();
 
         $this->assertSame(
-            [['first from okay_shop', 'Test/First'], ['second from okay_shop', 'Test/Second'], ['plain <b>', 'Test/Second']],
+            [[$this->active('first'), 'Test/First'], [$this->active('second'), 'Test/Second'], ['plain <b>', 'Test/Second']],
             $this->summary($modules->getFrontModulesTplModifications(self::ACTIVE_THEME))
         );
-        $this->assertSame('first from vibe_shop', $this->firstValue($modules->getFrontModulesTplModifications()));
+        $this->assertSame($this->preview('first'), $this->firstValue($modules->getFrontModulesTplModifications()));
     }
 
     public function testCacheIsKeptPerTheme(): void
@@ -108,12 +115,12 @@ class FrontTplModificationsThemeTest extends TestCase
         $startupReads = $this->paramsReads;
 
         $active = $modules->getFrontModulesTplModifications(self::ACTIVE_THEME);
-        $preview = $modules->getFrontModulesTplModifications(self::PREVIEW_THEME);
+        $preview = $modules->getFrontModulesTplModifications($this->previewTheme);
 
-        $this->assertSame('first from okay_shop', $this->firstValue($active));
-        $this->assertSame('first from vibe_shop', $this->firstValue($preview));
+        $this->assertSame($this->active('first'), $this->firstValue($active));
+        $this->assertSame($this->preview('first'), $this->firstValue($preview));
         $this->assertSame($active, $modules->getFrontModulesTplModifications(self::ACTIVE_THEME));
-        $this->assertSame($preview, $modules->getFrontModulesTplModifications(self::PREVIEW_THEME));
+        $this->assertSame($preview, $modules->getFrontModulesTplModifications($this->previewTheme));
         $this->assertSame(4, $this->paramsReads - $startupReads, 'кожна тема читає module.json один раз на модуль');
     }
 
@@ -123,12 +130,12 @@ class FrontTplModificationsThemeTest extends TestCase
             'parent' => ['..'],
             'current' => ['.'],
             'escape to sibling' => ['../outside'],
-            'escape via theme' => ['okay_shop/../../outside'],
-            'trailing slash' => ['okay_shop/'],
+            'escape via theme' => ['storefront/../../outside'],
+            'trailing slash' => ['storefront/'],
             'absolute' => ['/tmp'],
-            'backslash' => ['okay_shop\\..'],
-            'nul byte' => ["okay_shop\0"],
-            'trailing newline' => ["okay_shop\n"],
+            'backslash' => ['storefront\\..'],
+            'nul byte' => ["storefront\0"],
+            'trailing newline' => ["storefront\n"],
             'empty' => [''],
             'dot in existing dir' => ['with.dot'],
             'missing theme' => ['no_such_theme'],
@@ -210,7 +217,7 @@ class FrontTplModificationsThemeTest extends TestCase
     {
         $config = new \ReflectionClass(FrontTemplateConfig::class)->newInstanceWithoutConstructor();
         $this->setPrivate($config, 'theme', self::ACTIVE_THEME);
-        $this->setPrivate($config, 'adminTheme', self::PREVIEW_THEME);
+        $this->setPrivate($config, 'adminTheme', $this->previewTheme);
         $this->setPrivate($config, 'adminThemeManagers', []);
         // Деструктор чистить застарілі css/js у rootDir; хай дивиться в порожній каталог фікстури.
         $this->setPrivate($config, 'rootDir', $this->fixtureDir . '/');
@@ -240,6 +247,16 @@ class FrontTplModificationsThemeTest extends TestCase
     private function firstValue(array $modifications): string
     {
         return $modifications[0]->getChanges()[0]->getAppend();
+    }
+
+    private function active(string $module): string
+    {
+        return $module . ' from ' . self::ACTIVE_THEME;
+    }
+
+    private function preview(string $module): string
+    {
+        return $module . ' from ' . $this->previewTheme;
     }
 
     private function writeModuleFile(string $themeDir, string $vendorModule, string $content): void
