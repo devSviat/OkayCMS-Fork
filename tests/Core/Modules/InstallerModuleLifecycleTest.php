@@ -2,6 +2,7 @@
 
 namespace Core\Modules;
 
+use Okay\Core\Config;
 use Okay\Core\EntityFactory;
 use Okay\Core\Modules\DTO\ModuleParamsDTO;
 use Okay\Core\Modules\Installer;
@@ -15,22 +16,40 @@ use ReflectionClass;
 use ReflectionProperty;
 
 /**
- * Встановлення модуля, якого ще немає в ok_modules: його не запущено, тож
- * сервіси й параметри модуля в контейнері відсутні. Installer має зареєструвати
- * їх сам до install() і update_*, а на збої прибрати щойно доданий рядок.
+ * Модуль, якого ще немає в ok_modules або який вимкнено, на старті запиту не
+ * запущено, тож його сервіси, параметри й config.php у ядро не потрапили.
+ * Installer має підтягнути їх сам до install() і update_*, а на збої
+ * встановлення прибрати щойно доданий рядок.
  */
 #[AllowMockObjectsWithoutExpectations]
 class InstallerModuleLifecycleTest extends TestCase
 {
     private const int MODULE_ID = 7;
 
+    private string $moduleDir;
+    private array $loadedConfigs = [];
+
     protected function setUp(): void
     {
-        LifecycleInit::$log = [];
-        LifecycleInit::$failOn = null;
+        LifecycleInit::reset();
+        $this->forgetModuleInContainer();
+        $this->assertFalse(OkayContainer::getInstance()->has(LifecycleService::class), 'контейнер мусить стартувати без сервісу модуля');
+
+        $this->moduleDir = sys_get_temp_dir() . '/okay-lifecycle-' . bin2hex(random_bytes(4)) . '/';
+        mkdir($this->moduleDir . 'config', 0777, true);
+        file_put_contents($this->moduleDir . 'config/config.php', "lifecycle_flag = 1\n");
+        $this->loadedConfigs = [];
     }
 
-    public function testUpdateMethodResolvesModuleOwnServiceOnFreshInstall(): void
+    protected function tearDown(): void
+    {
+        $this->forgetModuleInContainer();
+        @unlink($this->moduleDir . 'config/config.php');
+        @rmdir($this->moduleDir . 'config');
+        @rmdir($this->moduleDir);
+    }
+
+    public function testFreshInstallBindsModuleBeforeInstallAndUpdates(): void
     {
         $installer = $this->installer($deleted);
 
@@ -38,7 +57,19 @@ class InstallerModuleLifecycleTest extends TestCase
         $this->assertSame(['install', 'update_1_0_1'], LifecycleInit::$log);
         $this->assertInstanceOf(LifecycleService::class, LifecycleInit::$resolved);
         $this->assertSame('from-parameters', LifecycleInit::$parameter);
+        $this->assertSame([$this->moduleDir . 'config/config.php'], $this->loadedConfigs);
         $this->assertSame([], $deleted, 'успішне встановлення рядок не чіпає');
+    }
+
+    public function testUpdateOfModuleThatWasNotStartedBindsItsServices(): void
+    {
+        $installer = $this->installer($deleted, $updated);
+
+        $installer->update(self::MODULE_ID);
+
+        $this->assertSame(['update_1_0_1'], LifecycleInit::$log);
+        $this->assertInstanceOf(LifecycleService::class, LifecycleInit::$resolved);
+        $this->assertSame([self::MODULE_ID, ['version' => '1.0.1']], $updated);
     }
 
     public function testFailingUpdateMethodRemovesModuleRow(): void
@@ -46,13 +77,7 @@ class InstallerModuleLifecycleTest extends TestCase
         LifecycleInit::$failOn = 'update_1_0_1';
         $installer = $this->installer($deleted);
 
-        try {
-            $installer->install('Vendor/Lifecycle');
-            $this->fail('виняток з update_* мусить дійти до адмінки');
-        } catch (\RuntimeException $e) {
-            $this->assertSame('update_1_0_1 failed', $e->getMessage());
-        }
-
+        $this->assertInstallThrows($installer, 'update_1_0_1 failed');
         $this->assertSame([[self::MODULE_ID]], $deleted);
     }
 
@@ -61,27 +86,56 @@ class InstallerModuleLifecycleTest extends TestCase
         LifecycleInit::$failOn = 'install';
         $installer = $this->installer($deleted);
 
-        try {
-            $installer->install('Vendor/Lifecycle');
-            $this->fail('виняток з install() мусить дійти до адмінки');
-        } catch (\RuntimeException $e) {
-            $this->assertSame('install failed', $e->getMessage());
-        }
-
+        $this->assertInstallThrows($installer, 'install failed');
         $this->assertSame([[self::MODULE_ID]], $deleted);
         $this->assertSame(['install'], LifecycleInit::$log);
     }
 
-    private function installer(&$deleted): Installer
+    public function testFailingRowRemovalKeepsOriginalException(): void
+    {
+        LifecycleInit::$failOn = 'install';
+        $installer = $this->installer($deleted, $updated, deleteThrows: true);
+
+        $this->assertInstallThrows($installer, 'install failed');
+    }
+
+    private function assertInstallThrows(Installer $installer, string $message): void
+    {
+        try {
+            $installer->install('Vendor/Lifecycle');
+            $this->fail('виняток мусить дійти до адмінки');
+        } catch (\RuntimeException $e) {
+            $this->assertSame($message, $e->getMessage());
+        }
+    }
+
+    private function installer(&$deleted, &$updated = null, bool $deleteThrows = false): Installer
     {
         $deleted = [];
+        $updated = null;
 
         $modulesEntity = $this->createStub(ModulesEntity::class);
         $modulesEntity->method('cols')->willReturnSelf();
         $modulesEntity->method('find')->willReturn([]);
         $modulesEntity->method('add')->willReturn(self::MODULE_ID);
+        $modulesEntity->method('findOne')->willReturn((object)[
+            'id' => self::MODULE_ID,
+            'vendor' => 'Vendor',
+            'module_name' => 'Lifecycle',
+            'version' => '1.0.0',
+            'enabled' => 0,
+        ]);
+        $modulesEntity->method('update')->willReturnCallback(
+            function ($id, $object) use (&$updated) {
+                $updated = [$id, $object];
+                return true;
+            }
+        );
         $modulesEntity->method('delete')->willReturnCallback(
-            function ($ids) use (&$deleted) {
+            function ($ids) use (&$deleted, $deleteThrows) {
+                if ($deleteThrows) {
+                    throw new \LogicException('delete failed');
+                }
                 $deleted[] = $ids;
                 return true;
             }
@@ -97,7 +151,7 @@ class InstallerModuleLifecycleTest extends TestCase
             ->disableOriginalConstructor()
             ->onlyMethods(['getModuleDirectory', 'getModuleParams', 'getInitClassName', 'getServices', 'getParameters'])
             ->getMock();
-        $moduleCore->method('getModuleDirectory')->willReturn('/modules/Vendor/Lifecycle/');
+        $moduleCore->method('getModuleDirectory')->willReturn($this->moduleDir);
         $moduleCore->method('getModuleParams')->willReturn($params);
         $moduleCore->method('getInitClassName')->willReturn(LifecycleInit::class);
         $moduleCore->method('getServices')->willReturn([
@@ -107,11 +161,35 @@ class InstallerModuleLifecycleTest extends TestCase
             'lifecycle_test' => ['value' => 'from-parameters'],
         ]);
 
+        $config = $this->createStub(Config::class);
+        $config->method('loadConfigsFrom')->willReturnCallback(
+            function ($file) {
+                $this->loadedConfigs[] = $file;
+            }
+        );
+
         // Справжній Modules: перевіряється саме реєстрація в контейнері, а не виклик методу.
         $modules = (new ReflectionClass(Modules::class))->newInstanceWithoutConstructor();
         (new ReflectionProperty(Modules::class, 'module'))->setValue($modules, $moduleCore);
+        (new ReflectionProperty(Modules::class, 'config'))->setValue($modules, $config);
 
         return new Installer($entityFactory, $moduleCore, $modules);
+    }
+
+    /**
+     * Контейнер — процесний синглтон без API для зняття реєстрації. Без чистки
+     * сервіс із попереднього тесту зробив би контроль «без bindModuleServices»
+     * залежним від порядку тестів.
+     */
+    private function forgetModuleInContainer(): void
+    {
+        $container = OkayContainer::getInstance();
+        foreach (['services' => LifecycleService::class, 'serviceStore' => LifecycleService::class, 'parameters' => 'lifecycle_test'] as $property => $key) {
+            $reflection = new ReflectionProperty(OkayContainer::class, $property);
+            $values = $reflection->getValue($container);
+            unset($values[$key]);
+            $reflection->setValue($container, $values);
+        }
     }
 }
 
@@ -129,6 +207,14 @@ class LifecycleInit
     public static ?string $failOn = null;
     public static ?object $resolved = null;
     public static mixed $parameter = null;
+
+    public static function reset(): void
+    {
+        self::$log = [];
+        self::$failOn = null;
+        self::$resolved = null;
+        self::$parameter = null;
+    }
 
     public function __construct($moduleId, $vendor, $moduleName)
     {

@@ -68,10 +68,10 @@ class Installer
                     $initObject = $this->getInitObject($initClassName, $moduleId, $vendor, $moduleName);
                     $initObject->install();
 
-                    // Апдейты при установке вызываем всегда начиная с версии 1.0.0
+                    // При встановленні update-методи викликаються завжди, починаючи з версії 1.0.0
                     $updateMethods = $this->getUpdateMethods($initClassName, $moduleParams->getMathVersion(), $this->module->getMathVersion('1.0.0'));
 
-                    // Вызываем поочередно методы для обновления модуля
+                    // Викликаємо update-методи модуля по черзі
                     if (!empty($updateMethods)) {
                         $initObject = $this->getInitObject($initClassName, $moduleId, $module->vendor, $module->module_name);
                         foreach ($updateMethods as $method) {
@@ -79,7 +79,7 @@ class Installer
                         }
                     }
                 } catch (\Throwable $e) {
-                    $this->modulesEntity->delete([$moduleId]);
+                    $this->removeFailedInstall($moduleId);
                     throw $e;
                 }
             }
@@ -113,6 +113,7 @@ class Installer
 
             // Вызываем поочередно методы для обновления модуля
             if (!empty($updateMethods)) {
+                $this->modules->bindModuleServices($module->vendor, $module->module_name);
                 $initObject = $this->getInitObject($initClassName, $moduleId, $module->vendor, $module->module_name);
                 foreach ($updateMethods as $method) {
                     $initObject->$method();
@@ -124,6 +125,22 @@ class Installer
         }
     }
     
+    /**
+     * Збій самого видалення не повинен підмінити виняток із install()/update_*:
+     * адмін має побачити першопричину.
+     */
+    private function removeFailedInstall($moduleId): void
+    {
+        if (empty($moduleId)) {
+            return;
+        }
+
+        try {
+            $this->modulesEntity->delete([$moduleId]);
+        } catch (\Throwable) {
+        }
+    }
+
     protected function getInitObject($init, $moduleId, $vendorName, $moduleName)
     {
         return new $init($moduleId, $vendorName, $moduleName);

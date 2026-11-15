@@ -174,11 +174,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
                 continue;
             }
 
-            $moduleConfigFile = __DIR__ . '/../../Modules/' . $module->vendor . '/' . $module->module_name . '/config/config.php';
-            if (is_file($moduleConfigFile)) {
-                $this->config->loadConfigsFrom($moduleConfigFile);
-            }
-
             if ($moduleParams = $this->module->getModuleParams($module->vendor, $module->module_name)) {
                 $this->modulesParams[$module->vendor . '/' . $module->module_name] = $moduleParams;
             }
@@ -636,12 +631,18 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
     }
 
     /**
-     * Реєструє в DI-контейнері параметри й сервіси модуля без виклику його init().
-     * Installer викликає це перед install() і update_*: модуль, якого ще немає
-     * в ok_modules, не запущено, а міграції можуть брати власні сервіси модуля.
+     * Завантажує config/config.php модуля й реєструє в DI-контейнері його параметри
+     * та сервіси без виклику init(). Installer викликає це перед install() і update_*:
+     * модуль, якого ще немає в ok_modules або вимкнений, на старті запиту не запущено,
+     * а міграції можуть брати власні сервіси модуля. Повторний виклик безпечний.
      */
     public function bindModuleServices(string $vendor, string $moduleName): void
     {
+        $moduleConfigFile = $this->module->getModuleDirectory($vendor, $moduleName) . 'config/config.php';
+        if (is_file($moduleConfigFile)) {
+            $this->config->loadConfigsFrom($moduleConfigFile);
+        }
+
         $container = OkayContainer::getInstance();
         $container->bindParameters($this->module->getParameters($vendor, $moduleName));
         $container->bindServices($this->module->getServices($vendor, $moduleName));
