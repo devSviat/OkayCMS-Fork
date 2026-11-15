@@ -70,22 +70,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
     private array $modulesModifications = ['front' => [], 'backend' => []];
     private $modificationsInit = false;
 
-    /** @var array<string, ModificationDTO[]> модифікації фронту за явно вказаною темою */
-    private array $frontModificationsByTheme = [];
-    private ?FrontTemplateConfig $frontTemplateConfig = null;
-    private string $designDir;
-
-    private const array ALLOWED_MODIFIERS = [
-        'setAppend' => 'getAppend',
-        'setAppendBefore' => 'getAppendBefore',
-        'setPrepend' => 'getPrepend',
-        'setAppendAfter' => 'getAppendAfter',
-        'setHtml' => 'getHtml',
-        'setText' => 'getText',
-        'setReplace' => 'getReplace',
-        'setRemove' => 'isRemove',
-    ];
-
     private $plugins;
 
     private const array SETTING_TYPES = ['hidden', 'text', 'date', 'checkbox'];
@@ -107,7 +91,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         $this->db            = $database;
         $this->config        = $config;
         $this->smarty        = $smarty;
-        $this->designDir     = dirname(__DIR__, 3) . '/design/';
     }
 
     /**
@@ -211,80 +194,12 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
     }
 
     /**
-     * @param string|null $theme каталог теми в design/, з якої брати файли модифікацій;
-     *                           null - тема поточного запиту (FrontTemplateConfig::getTheme(),
-     *                           в адмінці з cookie admin_login це тема попереднього перегляду)
-     * @return ModificationDTO[]
-     * @throws \InvalidArgumentException якщо $theme не є назвою каталогу теми в design/
-     */
-    public function getFrontModulesTplModifications(?string $theme = null): array
-    {
-        if ($theme === null) {
-            $this->initModulesModifications();
-            return $this->modulesModifications['front'];
-        }
-
-        $this->assertThemeDir($theme);
-
-        return $this->frontModificationsByTheme[$theme] ??= $this->buildFrontModificationsForTheme($theme);
-    }
-
-    private function assertThemeDir(string $theme): void
-    {
-        // Назва йде в шлях до файлу, тож лише один сегмент без крапок і слешів: вийти за design/ нею не можна.
-        if (preg_match('~^[A-Za-z0-9_-]+$~D', $theme) !== 1 || !is_dir($this->designDir . $theme)) {
-            throw new \InvalidArgumentException(sprintf('Theme "%s" is not a directory in design/', $theme));
-        }
-    }
-
-    /**
      * @return ModificationDTO[]
      */
-    private function buildFrontModificationsForTheme(string $theme): array
+    public function getFrontModulesTplModifications(): array
     {
-        $frontModifications = [];
-        foreach (array_keys(array_reverse($this->modulesParams)) as $vendorModule) {
-            if (!isset($this->runningModules[$vendorModule]) || !$this->runningModules[$vendorModule]['is_active']) {
-                continue;
-            }
-
-            // DTO з $modulesParams змінюються на місці й можуть уже містити вміст файлів іншої теми,
-            // тому module.json читаємо наново.
-            $runningModule = $this->runningModules[$vendorModule];
-            $freshParamsDTO = $this->module->getModuleParams($runningModule['vendor'], $runningModule['module_name']);
-
-            $this->resolveFrontChanges($vendorModule, $freshParamsDTO, $theme);
-            $frontModifications = array_merge($frontModifications, $freshParamsDTO->getFrontModifications());
-        }
-
-        return $frontModifications;
-    }
-
-    private function resolveFrontChanges(string $vendorModule, ModuleParamsDTO $modulesParamDTO, string $themeDir): void
-    {
-        $moduleDir = __DIR__ . '/../../Modules/' . $vendorModule . '/';
-        $themeModuleHtmlDir = $this->designDir . $themeDir . '/modules/' . $vendorModule . '/';
-
-        foreach ($modulesParamDTO->getFrontModifications() as $modificationDTO) {
-            foreach ($modificationDTO->getChanges() as $changeDTO) {
-
-                // Якщо коментар не вказано, підставляємо назву модуля
-                if (empty($changeDTO->getComment())) {
-                    $changeDTO->setComment($vendorModule);
-                }
-
-                foreach (self::ALLOWED_MODIFIERS as $setMethod => $getMethod) {
-                    // Якщо значення модифікатора - ім'я файлу, беремо вміст цього файлу
-                    if (!empty($changeDTO->$getMethod())) {
-                        if (is_file($themeModuleHtmlDir . 'html/' . $changeDTO->$getMethod())) {
-                            $changeDTO->$setMethod(file_get_contents($themeModuleHtmlDir . 'html/' . $changeDTO->$getMethod()));
-                        } else if (is_file($moduleDir . 'design/html/' . $changeDTO->$getMethod())) {
-                            $changeDTO->$setMethod(file_get_contents($moduleDir . 'design/html/' . $changeDTO->$getMethod()));
-                        }
-                    }
-                }
-            }
-        }
+        $this->initModulesModifications();
+        return $this->modulesModifications['front'];
     }
 
     private function initModulesModifications()
@@ -292,6 +207,17 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         if ($this->modificationsInit === true) {
             return;
         }
+
+        $allowedModifiers = [
+            'setAppend' => 'getAppend',
+            'setAppendBefore' => 'getAppendBefore',
+            'setPrepend' => 'getPrepend',
+            'setAppendAfter' => 'getAppendAfter',
+            'setHtml' => 'getHtml',
+            'setText' => 'getText',
+            'setReplace' => 'getReplace',
+            'setRemove' => 'isRemove',
+        ];
 
         $frontModifications = [];
         $backendModifications = [];
@@ -304,10 +230,37 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
                     continue;
                 }
 
-                $themeDir = $this->frontTemplateConfig()->getTheme();
-                $moduleDir = __DIR__ . '/../../Modules/' . $vendorModule . '/';
+                // Через ServiceLocator, а не конструктор: FrontTemplateConfig сам залежить від Modules,
+                // і ін'єкція дала б циклічну залежність.
+                $serviceLocator = ServiceLocator::getInstance();
 
-                $this->resolveFrontChanges($vendorModule, $modulesParamDTO, $themeDir);
+                /** @var FrontTemplateConfig $frontTemplateConfig */
+                $frontTemplateConfig = $serviceLocator->getService(FrontTemplateConfig::class);
+                $themeDir  = $frontTemplateConfig->getTheme();
+
+                $moduleDir = __DIR__ . '/../../Modules/' . $vendorModule . '/';
+                $themeModuleHtmlDir = dirname(__DIR__,3).'/design/'.$themeDir.'/modules/'.$vendorModule.'/';
+
+                foreach ($modulesParamDTO->getFrontModifications() as $modificationDTO) {
+                    foreach ($modificationDTO->getChanges() as $changeDTO) {
+
+                        // Якщо коментар не вказано, підставляємо назву модуля
+                        if (empty($changeDTO->getComment())) {
+                            $changeDTO->setComment($vendorModule);
+                        }
+
+                        foreach ($allowedModifiers as $setMethod => $getMethod) {
+                            // Якщо значення модифікатора - ім'я файлу, беремо вміст цього файлу
+                            if (!empty($changeDTO->$getMethod())) {
+                                if (is_file($themeModuleHtmlDir . 'html/' . $changeDTO->$getMethod())) {
+                                    $changeDTO->$setMethod(file_get_contents($themeModuleHtmlDir . 'html/' . $changeDTO->$getMethod()));
+                                } else if (is_file($moduleDir . 'design/html/' . $changeDTO->$getMethod())) {
+                                    $changeDTO->$setMethod(file_get_contents($moduleDir . 'design/html/' . $changeDTO->$getMethod()));
+                                }
+                            }
+                        }
+                    }
+                }
                 $frontModifications = array_merge($frontModifications, $modulesParamDTO->getFrontModifications());
 
                 foreach ($modulesParamDTO->getBackendModifications() as $modification) {
@@ -317,7 +270,7 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
                             $changeDTO->setComment($vendorModule);
                         }
 
-                        foreach (self::ALLOWED_MODIFIERS as $setMethod => $getMethod) {
+                        foreach ($allowedModifiers as $setMethod => $getMethod) {
                             // Если в значении модификатора указано имя файла - значение считаем с самого файла
                             if (!empty($changeDTO->$getMethod())) {
                                 if (is_file($moduleDir . 'Backend/design/html/' . $changeDTO->$getMethod())) {
@@ -335,13 +288,6 @@ class Modules // TODO: подумать, мож сюда переедет CRUD E
         $this->modulesModifications['backend'] = $backendModifications;
 
         $this->modificationsInit = true;
-    }
-
-    private function frontTemplateConfig(): FrontTemplateConfig
-    {
-        // Через ServiceLocator, а не конструктор: FrontTemplateConfig сам залежить від Modules,
-        // і ін'єкція дала б циклічну залежність.
-        return $this->frontTemplateConfig ??= ServiceLocator::getInstance()->getService(FrontTemplateConfig::class);
     }
 
     /**
