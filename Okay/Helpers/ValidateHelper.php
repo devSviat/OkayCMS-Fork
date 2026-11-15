@@ -21,17 +21,20 @@ class ValidateHelper
     private Settings $settings;
     private Request $request;
     private FrontTranslations $frontTranslations;
+    private OrdersHelper $ordersHelper;
 
     public function __construct(
         Validator $validator,
         Settings $settings,
         Request $request,
-        FrontTranslations $frontTranslations
+        FrontTranslations $frontTranslations,
+        OrdersHelper $ordersHelper
     ) {
         $this->validator = $validator;
         $this->settings = $settings;
         $this->request = $request;
         $this->frontTranslations = $frontTranslations;
+        $this->ordersHelper = $ordersHelper;
     }
 
     public function getUserError($user, $currentUserId): ?string
@@ -122,10 +125,20 @@ class ValidateHelper
         return ExtenderFacade::execute(__METHOD__, $error, func_get_args());
     }
 
-    public function getCartValidateError($order): ?string
+    /**
+     * Помилка оформлення з кошика.
+     *
+     * Ланки розширення бачать і змінюють лише помилку контактів (ім'я, email, телефон, коментар)
+     * і можуть її зняти: модуль контактів робить email необов'язковим. Помилка
+     * getCartSecurityError() (доставка, спосіб оплати, капча) рахується окремо й має перевагу,
+     * тож ланка, що зняла помилку контактів, перевірки безпеки не вимикає.
+     *
+     * @param object $order результат CartRequest::postOrder()
+     * @param object[] $cartDeliveries доставки, які кошик пропонує покупцеві: результат
+     *        DeliveriesHelper::getCartDeliveriesList(). Без списку будь-яка доставка відхиляється.
+     */
+    public function getCartValidateError($order, array $cartDeliveries = []): ?string
     {
-        $captchaCode =  $this->request->post('captcha_code', 'string');
-        
         $error = null;
         if (!$this->validator->isName($order->name, true) || !$this->validator->isName($order->last_name ?? '')) {
             $error = 'empty_name';
@@ -135,13 +148,70 @@ class ValidateHelper
             $error = 'empty_phone';
         } elseif (!$this->validator->isComment($order->comment)) {
             $error = 'empty_comment';
-        } elseif ($this->settings->get('captcha_cart') && !$this->validator->verifyCaptcha('captcha_cart', $captchaCode)) {
+        }
+
+        $contactError = ExtenderFacade::execute(__METHOD__, $error, func_get_args());
+
+        return $this->getCartSecurityError($order, $cartDeliveries) ?? $contactError;
+    }
+
+    /**
+     * Перевірки оформлення, яких ланки розширення не знімають: доставка з тих, що пропонує кошик,
+     * спосіб оплати для цієї доставки, капча. Ланка може додати власну помилку, але помилку
+     * ядра не прибере.
+     *
+     * Помилки доставки й способу йдуть текстом, а не кодом: теми знають лише свої коди, а невідому
+     * помилку друкують як є. Без ключа в темі лишається код, бо порожня помилка означала б, що
+     * перевірку пройдено.
+     *
+     * @param object[] $cartDeliveries див. getCartValidateError()
+     */
+    public function getCartSecurityError($order, array $cartDeliveries = []): ?string
+    {
+        $delivery = empty($order->delivery_id) ? null : self::offeredDelivery((int)$order->delivery_id, $cartDeliveries);
+
+        $error = null;
+        if (!empty($order->delivery_id) && $delivery === null) {
+            $error = $this->frontTranslations->getTranslation('form_error_delivery') ?: 'delivery';
+        } elseif (!empty($order->payment_method_id) && !$this->isPaymentMethodOffered($order, $delivery)) {
+            $error = $this->frontTranslations->getTranslation('form_error_payment_method') ?: 'payment_method';
+        } elseif ($this->settings->get('captcha_cart')
+            && !$this->validator->verifyCaptcha('captcha_cart', $this->request->post('captcha_code', 'string'))
+        ) {
             $error = 'captcha';
         }
 
-        return ExtenderFacade::execute(__METHOD__, $error, func_get_args());
+        $extended = ExtenderFacade::execute(__METHOD__, $error, func_get_args());
+
+        return $error ?? ($extended ?: null);
     }
-    
+
+    /**
+     * Спосіб має бути і в списку, який кошик показав для цієї доставки, і повʼязаний із нею в базі:
+     * правило сторінки замовлення (OrdersHelper::isPaymentMethodOffered()).
+     */
+    private function isPaymentMethodOffered(object $order, ?object $delivery): bool
+    {
+        $paymentMethodId = (int)$order->payment_method_id;
+        $shown = array_map(intval(...), (array)($delivery->payment_methods_ids ?? []));
+
+        return $delivery !== null
+            && in_array($paymentMethodId, $shown, true)
+            && $this->ordersHelper->isPaymentMethodOffered($order, $paymentMethodId);
+    }
+
+    /** Модулі можуть переставити ключі списку, тож збіг шукається за id доставки. */
+    private static function offeredDelivery(int $deliveryId, array $cartDeliveries): ?object
+    {
+        foreach ($cartDeliveries as $delivery) {
+            if (is_object($delivery) && (int)($delivery->id ?? 0) === $deliveryId) {
+                return $delivery;
+            }
+        }
+
+        return null;
+    }
+
     public function getCallbackValidateError($callback): ?string
     {
         $captchaCode =  $this->request->post('captcha_code', 'string');

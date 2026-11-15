@@ -5,6 +5,7 @@ namespace Okay\Helpers;
 
 
 use Okay\Core\EntityFactory;
+use Okay\Core\StorefrontPaymentMethods;
 use Okay\Core\Phone;
 use Okay\Core\UserReferer\UserReferer;
 use Okay\Entities\DeliveriesEntity;
@@ -88,8 +89,7 @@ class OrdersHelper
         $paymentMethod = null;
 
         if ($order->payment_method_id) {
-            $paymentMethod = $paymentsEntity->get((int)$order->payment_method_id);
-            $paymentMethod->settings = unserialize($paymentMethod->settings, ['allowed_classes' => false]);
+            $paymentMethod = StorefrontPaymentMethods::withoutSettings($paymentsEntity->get((int)$order->payment_method_id) ?: null);
         }
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethod, func_get_args());
@@ -105,11 +105,74 @@ class OrdersHelper
             'enabled' => 1,
         ]);
 
-        foreach ($paymentMethods as $paymentMethod) {
-            $paymentMethod->settings = unserialize($paymentMethod->settings, ['allowed_classes' => false]);
-        }
+        StorefrontPaymentMethods::withoutSettings($paymentMethods);
 
         return ExtenderFacade::execute(__METHOD__, $paymentMethods, func_get_args());
+    }
+
+    /**
+     * Чи може покупець на сторінці замовлення змінити спосіб оплати.
+     *
+     * $paymentMethodId = null означає «скинути вибір». Інакше спосіб має бути з того самого
+     * списку, що показує сторінка: увімкнений і доступний для доставки замовлення.
+     * Оплачене замовлення спосіб не міняє. Модуль, який знає про інші стани оплати
+     * (наприклад, заблоковані кошти), звужує правило через ChainExtender.
+     */
+    public function canChangePaymentMethod($order, ?int $paymentMethodId): bool
+    {
+        $allowed = !empty($order->id)
+            && empty($order->paid)
+            && ($paymentMethodId === null || $this->isPaymentMethodOffered($order, $paymentMethodId));
+
+        return (bool)ExtenderFacade::execute(__METHOD__, $allowed, func_get_args());
+    }
+
+    /**
+     * Чи пропонує доставка замовлення цей спосіб оплати: він увімкнений і повʼязаний із нею.
+     * Одне правило для сторінки замовлення й оформлення з кошика; модуль звужує його тут,
+     * і звуження діє на обидва місця.
+     */
+    public function isPaymentMethodOffered(object $order, int $paymentMethodId): bool
+    {
+        // Захист у глибину: вибірка нижче такі id і так відкидає.
+        $offered = $paymentMethodId > 0
+            && !empty($order->delivery_id)
+            && (bool)$this->paymentsEntity()->findOne([
+                'id'          => $paymentMethodId,
+                'enabled'     => 1,
+                'delivery_id' => (int)$order->delivery_id,
+            ]);
+
+        return (bool)ExtenderFacade::execute(__METHOD__, $offered, func_get_args());
+    }
+
+    /**
+     * Прибирає спосіб оплати, коли доставка замовлення не пропонує жодного. Тема тоді ховає
+     * блок оплати, а приховані радіокнопки вимикає скриптом (okay.change_payment_method()).
+     * Без JS позначена прихована кнопка однаково надсилається, і покупець отримав би помилку
+     * про вибір, якого не бачив. 0 — те саме, що спосіб не надіслано.
+     */
+    public function dropPaymentMethodIfDeliveryOffersNone(object $order): object
+    {
+        if (!empty($order->payment_method_id) && !$this->deliveryOffersPaymentMethods($order)) {
+            $order->payment_method_id = 0;
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $order, func_get_args());
+    }
+
+    private function deliveryOffersPaymentMethods(object $order): bool
+    {
+        return !empty($order->delivery_id)
+            && (bool)$this->paymentsEntity()->findOne([
+                'enabled'     => 1,
+                'delivery_id' => (int)$order->delivery_id,
+            ]);
+    }
+
+    private function paymentsEntity(): PaymentsEntity
+    {
+        return $this->entityFactory->get(PaymentsEntity::class);
     }
     
     public function getOrderPurchasesList($orderId)

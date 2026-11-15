@@ -163,8 +163,11 @@ class CartController extends AbstractController
         if (isset($_POST['checkout'])) {
             $order = $cartRequest->postOrder();
             $order = $ordersHelper->attachUserIfLogin($order, $this->user);
+            $order = $ordersHelper->dropPaymentMethodIfDeliveryOffersNone($order);
 
-            if ($error = $validateHelper->getCartValidateError($order)) {
+            // Той самий список, що кошик показує покупцеві, з усіма розширеннями модулів.
+            $cartDeliveries = $deliveriesHelper->getCartDeliveriesList($cart, $paymentsHelper->getCartPaymentsList($cart));
+            if ($error = $validateHelper->getCartValidateError($order, $cartDeliveries)) {
                 $this->design->assign('error', $error);
             } elseif ($cart->isEmpty) {
                 // Порожній кошик сам по собі не означає повтору: покупець міг

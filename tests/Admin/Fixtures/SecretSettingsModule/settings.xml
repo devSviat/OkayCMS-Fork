@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <settings type="text">
+        <variable>vendor__public_key</variable>
+        <name>Public key</name>
+    </settings>
+    <settings type="secret">
+        <variable>vendor__private_key</variable>
+        <name>Private key</name>
+    </settings>
+    <settings type="SECRET">
+        <variable>vendor__token</variable>
+        <name>Token</name>
+    </settings>
+    <settings type="password">
+        <variable>vendor__unknown_type</variable>
+        <name>Unknown type</name>
+    </settings>
+</module>

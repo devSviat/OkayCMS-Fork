@@ -256,7 +256,7 @@ class Notify
         $this->design->assign('delivery', $delivery);
         
         // Способ оплаты
-        $paymentMethod = $paymentsEntity->findOne(['id' => $order->payment_method_id]);
+        $paymentMethod = StorefrontPaymentMethods::withoutSettings($paymentsEntity->findOne(['id' => $order->payment_method_id]));
         $this->design->assign('payment_method', $paymentMethod);
         
         $this->design->assign('order', $order);
@@ -351,7 +351,7 @@ class Notify
         $this->design->assign('delivery', $delivery);
 
         // Способ оплаты
-        $paymentMethod = $paymentsEntity->findOne(['id' => $order->payment_method_id]);
+        $paymentMethod = StorefrontPaymentMethods::withoutSettings($paymentsEntity->findOne(['id' => $order->payment_method_id]));
         $this->design->assign('payment_method', $paymentMethod);
         
         // Пользователь

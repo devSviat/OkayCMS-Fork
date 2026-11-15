@@ -25,11 +25,12 @@ class ModulesAdmin extends IndexAdmin
             if (!empty($this->request->post('install_module'))) {
                 // Installer::install() кидає виняток, зокрема на вже встановленому
                 // модулі. Без перехоплення адмінка віддавала голий Fatal error.
+                // Повідомлення йде через сесію: нижче POST завершується редіректом.
                 try {
                     $installed = $modulesInstaller->install($this->request->post('install_module'));
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $installed = false;
-                    $this->design->assign('message_error', $e->getMessage());
+                    $this->postRedirectGet->storeMessageError($e->getMessage());
                 }
 
                 if ($installed) {
@@ -59,8 +60,12 @@ class ModulesAdmin extends IndexAdmin
                         break;
                     }
                     case 'update': {
-                        foreach ($ids as $id) {
-                            $modulesInstaller->update((int)$id);
+                        try {
+                            foreach ($ids as $id) {
+                                $modulesInstaller->update((int)$id);
+                            }
+                        } catch (\Throwable $e) {
+                            $this->postRedirectGet->storeMessageError($e->getMessage());
                         }
                         $this->design->clearCompiled();
                         break;

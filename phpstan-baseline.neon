@@ -609,13 +609,13 @@ parameters:
 		-
 			message: '#^Cannot access property \$module_name on object\|string\.$#'
 			identifier: property.nonObject
-			count: 3
+			count: 4
 			path: Okay/Core/Modules/Installer.php
 
 		-
 			message: '#^Cannot access property \$vendor on object\|string\.$#'
 			identifier: property.nonObject
-			count: 3
+			count: 4
 			path: Okay/Core/Modules/Installer.php
 
 		-

@@ -6,6 +6,7 @@ use Okay\Core\EntityFactory;
 use Okay\Core\Modules\Installer;
 use Okay\Core\Modules\DTO\ModuleParamsDTO;
 use Okay\Core\Modules\Module;
+use Okay\Core\Modules\Modules;
 use Okay\Core\Modules\VersionControl;
 use Okay\Entities\ModulesEntity;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -103,7 +104,7 @@ class ModuleVersionNullTest extends TestCase
         $moduleCore->method('getModuleParams')->willReturn($params);
         $moduleCore->method('getInitClassName')->willReturn(StubVersionedInit::class);
 
-        return new SpyInstaller($entityFactory, $moduleCore);
+        return new SpyInstaller($entityFactory, $moduleCore, $this->createStub(Modules::class));
     }
 
     /**

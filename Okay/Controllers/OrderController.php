@@ -4,6 +4,7 @@
 namespace Okay\Controllers;
 
 
+use Okay\Core\Router;
 use Okay\Entities\CouponsEntity;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Entities\OrdersEntity;
@@ -53,12 +54,19 @@ class OrderController extends AbstractController
         
         /*Выбор другого способа оплаты*/
         if ($this->request->method('post')) {
-            if ($paymentMethodId = $this->request->post('payment_method_id', 'integer')) {
-                $ordersEntity->update($order->id, ['payment_method_id'=>$paymentMethodId]);
-                $order = $ordersEntity->get((int)$order->id);
-            } elseif ($this->request->post('reset_payment_method')) {
-                $ordersEntity->update($order->id, ['payment_method_id'=>null]);
-                $order = $ordersEntity->get((int)$order->id);
+            $paymentMethodId = $this->request->post('payment_method_id', 'integer');
+            $resetPaymentMethod = !$paymentMethodId && $this->request->post('reset_payment_method');
+            if ($paymentMethodId || $resetPaymentMethod) {
+                // Не requireCustomerCsrf(): форми зміни оплати в темах токена не друкують.
+                // Перевірка лише для цих полів, бо платіжні сервіси повертають покупця сюди своїм POST.
+                $this->requireSameOrigin();
+
+                $newPaymentMethodId = $resetPaymentMethod ? null : $paymentMethodId;
+                if ($ordersHelper->canChangePaymentMethod($order, $newPaymentMethodId)) {
+                    $ordersEntity->update($order->id, ['payment_method_id' => $newPaymentMethodId]);
+                }
+
+                $this->response->redirectTo(Router::generateUrl('order', ['url' => $order->url], true), 303);
             }
         }
         
