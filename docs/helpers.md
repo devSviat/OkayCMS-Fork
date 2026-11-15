@@ -86,7 +86,8 @@ public function getUserError($user, $currentUserId): ?string
 public function getUserRegisterError($user): ?string
 public function getUserLoginError($email, $password): ?string
 public function getFeedbackValidateError($feedback): ?string
-public function getCartValidateError($order): ?string
+public function getCartValidateError($order, array $cartDeliveries = []): ?string
+public function getCartSecurityError($order, array $cartDeliveries = []): ?string
 public function getCallbackValidateError($callback): ?string
 public function getCommentValidateError($comment): ?string
 public function getSubscribeValidateError($subscribe): ?string
