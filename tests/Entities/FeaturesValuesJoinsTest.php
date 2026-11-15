@@ -94,8 +94,8 @@ class FeaturesValuesJoinsTest extends TestCase
 
     /**
      * У режимі існування pf і p не джойняться, тож фільтр, що їх читає, мусить або
-     * вимкнути режим (блокер чи умова на товар поза підзапитом), або бути умовою,
-     * яку виконує сам підзапит. Інакше запит падає в лог мовчки.
+     * вимкнути режим (блокер), або бути умовою, яку виконує сам підзапит. Інакше
+     * запит падає в лог мовчки.
      */
     #[DataProvider('productsAliasUsageProvider')]
     public function testExistenceModeExcludesEveryAliasReader(string $filterName, string $alias): void

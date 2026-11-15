@@ -13,6 +13,7 @@ use Okay\Entities\FeaturesValuesEntity;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionClassConstant;
 
 /**
  * Форма запиту find() у режимі існування й межі цього режиму. Помилка тут тиха:
@@ -24,8 +25,6 @@ use ReflectionClass;
  */
 class FeaturesValuesExistenceTest extends TestCase
 {
-    private const BLOCKERS = ['features', 'product_id', 'brand_id', 'other_filter', 'price', 'product_keyword', 'brand'];
-
     public function testInStockAloneUsesOneCorrelatedSubquery(): void
     {
         $sql = self::findSql(['feature_id' => [1, 2], 'in_stock' => true])['sql'];
@@ -51,7 +50,9 @@ class FeaturesValuesExistenceTest extends TestCase
     /** @return array<string, array{string}> */
     public static function blockerProvider(): array
     {
-        return array_combine(self::BLOCKERS, array_map(static fn (string $b): array => [$b], self::BLOCKERS));
+        $blockers = (new ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_BLOCKERS'))->getValue();
+
+        return array_combine($blockers, array_map(static fn (string $b): array => [$b], $blockers));
     }
 
     #[DataProvider('blockerProvider')]
@@ -67,6 +68,7 @@ class FeaturesValuesExistenceTest extends TestCase
             'brand'           => 'x',
         ];
 
+        self::assertArrayHasKey($blocker, $values, "для блокера {$blocker} немає значення в тесті");
         $sql = self::findSql(['feature_id' => [1], $blocker => $values[$blocker], 'in_stock' => true])['sql'];
 
         self::assertLegacy($sql);
@@ -82,11 +84,53 @@ class FeaturesValuesExistenceTest extends TestCase
     {
         self::assertLegacy(self::findSql(['feature_id' => [1], 'in_stock' => true], ['in_stock'])['sql']);
         self::assertLegacy(self::findSql(['feature_id' => [1], 'in_stock' => true, 'visible' => 1], ['visible'])['sql']);
+        self::assertLegacy(self::findSql(
+            ['feature_id' => [1], 'visible' => 1, 'have_products_in_categories' => [3]],
+            ['have_products_in_categories']
+        )['sql']);
     }
 
-    public function testVisibleStillLegacyInThisStep(): void
+    public function testFacetFilterUsesOneSubquery(): void
     {
-        self::assertLegacy(self::findSql(['feature_id' => [1], 'in_stock' => true, 'visible' => 1])['sql']);
+        $sql = self::findSql([
+            'visible' => 1,
+            'feature_id' => [1, 2],
+            'category_id' => [3, 4],
+            'have_products_in_categories' => [3, 4],
+        ])['sql'];
+
+        self::assertSame(1, substr_count($sql, '__products_features_values AS pfe'), 'один підзапит на значення');
+        self::assertMatchesRegularExpression('/pe\.visible = :exv_visible/', $sql);
+        self::assertMatchesRegularExpression('/pce\.category_id IN \(/', $sql);
+        self::assertDoesNotMatchRegularExpression('/JOIN __products_features_values AS pf\b/', $sql);
+        self::assertDoesNotMatchRegularExpression('/JOIN __products AS p\b/', $sql);
+        self::assertDoesNotMatchRegularExpression('/JOIN __products_categories AS pc\b/', $sql);
+        self::assertMatchesRegularExpression('/JOIN __categories_features AS cf\b/', $sql);
+        self::assertStringContainsString('GROUP BY fv.id', $sql);
+    }
+
+    /** Старий шлях без visible/in_stock не джойнив p, тож і підзапит не йде через pe. */
+    public function testCategoriesOnlyDoesNotJoinProducts(): void
+    {
+        $sql = self::findSql(['feature_id' => [1], 'have_products_in_categories' => [3]])['sql'];
+
+        self::assertMatchesRegularExpression('/JOIN __products_categories AS pce\b/', $sql);
+        self::assertDoesNotMatchRegularExpression('/__products AS pe\b/', $sql);
+        self::assertDoesNotMatchRegularExpression('/JOIN __products_features_values AS pf\b/', $sql);
+    }
+
+    public function testSelectedFeaturesKeepLegacyPath(): void
+    {
+        $sql = self::findSql([
+            'visible' => 1,
+            'feature_id' => [1, 2],
+            'category_id' => [3],
+            'have_products_in_categories' => [3],
+            'features' => [1 => ['a']],
+        ])['sql'];
+
+        self::assertLegacy($sql);
+        self::assertMatchesRegularExpression('/JOIN __products_categories AS pc\b/', $sql);
     }
 
     public function testWithoutConditionsNothingChanges(): void

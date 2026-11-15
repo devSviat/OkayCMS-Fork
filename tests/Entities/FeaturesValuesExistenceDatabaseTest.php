@@ -144,6 +144,113 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
     }
 
     /**
+     * Кожна непорожня підмножина умов фасету, з категорією й без, з різними
+     * значеннями visible та in_stock: множина й порядок збігаються зі старим шляхом.
+     *
+     * @return array<string, array{array<string, mixed>, bool}>
+     */
+    public static function facetProvider(): array
+    {
+        $variants = [
+            'visible' => ['visible=1' => 1, 'visible=0' => 0],
+            'in_stock' => ['in_stock=true' => true, 'in_stock=false' => false],
+            'have_products_in_categories' => ['hpc' => true],
+        ];
+
+        $cases = [];
+        $names = array_keys($variants);
+        for ($mask = 1; $mask < 1 << count($names); $mask++) {
+            $combos = [[]];
+            foreach ($names as $bit => $name) {
+                if (!($mask & 1 << $bit)) {
+                    continue;
+                }
+                $next = [];
+                foreach ($combos as $combo) {
+                    foreach ($variants[$name] as $label => $value) {
+                        $next[] = $combo + [$label => [$name, $value]];
+                    }
+                }
+                $combos = $next;
+            }
+            foreach ($combos as $combo) {
+                $conditions = [];
+                foreach ($combo as [$name, $value]) {
+                    $conditions[$name] = $value;
+                }
+                foreach (self::categoryProvider() as $categoryLabel => [$withCategory]) {
+                    $cases[implode(', ', array_keys($combo)) . ', ' . $categoryLabel] = [$conditions, $withCategory];
+                }
+            }
+        }
+
+        return $cases;
+    }
+
+    /** @param array<string, mixed> $conditions */
+    #[DataProvider('facetProvider')]
+    public function testFacetMatchesLegacyPath(array $conditions, bool $withCategory): void
+    {
+        $filter = ['feature_id' => $this->featureIds()] + $conditions;
+        if (isset($filter['have_products_in_categories'])) {
+            $filter['have_products_in_categories'] = $this->categoryTree();
+        }
+        if ($withCategory) {
+            $filter['category_id'] = $this->categoryTree();
+        }
+
+        $legacy = $this->foundIds($filter + [self::PROBE => true]);
+
+        self::assertStringContainsString('pfe', $this->findSql($filter), 'фільтр не потрапив у режим існування');
+        self::assertNotSame([], $legacy, 'порожній еталон нічого не розрізняє');
+        self::assertSame($legacy, $this->foundIds($filter));
+    }
+
+    /**
+     * Старий шлях вимагає, щоб усі умови виконав той самий товар. Окремі підзапити
+     * на кожну умову знайшли б «якийсь видимий» і «якийсь у наявності» товар.
+     */
+    public function testAllConditionsMustHoldForOneProduct(): void
+    {
+        $filters = [
+            'visible + in_stock' => ['visible' => 1, 'in_stock' => true],
+            'visible + категорії' => ['visible' => 1, 'have_products_in_categories' => [$this->ids['category_parent']]],
+            'in_stock + категорії' => ['in_stock' => true, 'have_products_in_categories' => [$this->ids['category_parent']]],
+            'усі три' => ['visible' => 1, 'in_stock' => true, 'have_products_in_categories' => [$this->ids['category_parent']]],
+        ];
+
+        foreach ($filters as $label => $conditions) {
+            $filter = ['feature_id' => $this->featureIds()] + $conditions;
+            $found = $this->foundIds($filter);
+
+            if (isset($conditions['visible'], $conditions['in_stock'])) {
+                self::assertNotContains($this->ids['value_split_flags'], $found, $label);
+            }
+            if (isset($conditions['have_products_in_categories'])) {
+                self::assertNotContains($this->ids['value_split_category'], $found, $label);
+            }
+            self::assertSame($this->foundIds($filter + [self::PROBE => true]), $found, $label);
+        }
+    }
+
+    /** cf із кількома дочірніми категоріями дає рядок на кожну; GROUP BY схлопує їх. */
+    public function testFeatureInTwoChildCategoriesNotDuplicated(): void
+    {
+        $filter = [
+            'feature_id' => $this->featureIds(),
+            'visible' => 1,
+            'category_id' => $this->categoryTree(),
+            'have_products_in_categories' => $this->categoryTree(),
+        ];
+
+        $found = $this->foundIds($filter);
+
+        self::assertContains($this->ids['value_in_stock'], $found);
+        self::assertSame(array_values(array_unique($found)), $found, 'значення повторюється');
+        self::assertSame($this->foundIds($filter + [self::PROBE => true]), $found);
+    }
+
+    /**
      * Порядок тут збігається і без id у сортуванні: на цих даних оптимізатор
      * віддає нічиї в порядку id. Справжній гард — FeaturesValuesOrderTest.
      */
@@ -159,6 +266,12 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         }
 
         self::assertSame([$this->ids['value_tie_a'], $this->ids['value_tie_b']], $tieIds);
+    }
+
+    /** @return int[] */
+    private function categoryTree(): array
+    {
+        return [$this->ids['category_parent'], $this->ids['category_child'], $this->ids['category_child2']];
     }
 
     /** @return int[] */
@@ -200,22 +313,30 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
     }
 
     /**
-     * Дві категорії (батьківська й дочірня), дві властивості (спільна для обох
-     * і тільки батьківська), дев'ять значень і товари для кожного випадку, який
-     * розрізняють умови наявності й видимості.
+     * Батьківська категорія з двома дочірніми, дві властивості (спільна для всіх
+     * трьох і тільки батьківська) і товари для кожного випадку, який розрізняють
+     * умови наявності, видимості й категорії.
      */
     private function buildFixture(): void
     {
         $parent = $this->insert('categories', ['parent_id' => 0, 'name' => 'fx parent', 'url' => 'fx-parent', 'visible' => 1]);
         $child = $this->insert('categories', ['parent_id' => $parent, 'name' => 'fx child', 'url' => 'fx-child', 'visible' => 1]);
+        $child2 = $this->insert('categories', ['parent_id' => $parent, 'name' => 'fx child2', 'url' => 'fx-child2', 'visible' => 1]);
         $other = $this->insert('categories', ['parent_id' => 0, 'name' => 'fx other', 'url' => 'fx-other', 'visible' => 1]);
-        $this->ids += ['category_parent' => $parent, 'category_child' => $child, 'category_other' => $other];
+        $side = $this->insert('categories', ['parent_id' => 0, 'name' => 'fx side', 'url' => 'fx-side', 'visible' => 1]);
+        $this->ids += [
+            'category_parent' => $parent,
+            'category_child' => $child,
+            'category_child2' => $child2,
+            'category_other' => $other,
+            'category_side' => $side,
+        ];
 
         $shared = $this->insert('features', ['name' => 'fx shared', 'url' => 'fx-shared', 'in_filter' => 1]);
         $own = $this->insert('features', ['name' => 'fx own', 'url' => 'fx-own', 'in_filter' => 1]);
         $this->ids += ['feature_shared' => $shared, 'feature_own' => $own];
 
-        foreach ([$parent, $child] as $category) {
+        foreach ([$parent, $child, $child2] as $category) {
             $this->insert('categories_features', ['category_id' => $category, 'feature_id' => $shared]);
         }
         $this->insert('categories_features', ['category_id' => $parent, 'feature_id' => $own]);
@@ -230,6 +351,8 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
             'value_other_cat'  => $this->value($own, 'echo', 3),
             'value_unused'     => $this->value($own, 'foxtrot', 4),
             'value_orphan'     => $this->value($own, 'golf', 5),
+            'value_split_flags'    => $this->value($shared, 'hotel', 6),
+            'value_split_category' => $this->value($shared, 'india', 7),
         ];
 
         $this->product('product_in_stock', $parent, true, 5, ['value_in_stock', 'value_tie_a']);
@@ -237,6 +360,12 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         $this->product('product_null_stock', $parent, true, null, ['value_null_stock']);
         $this->product('product_hidden', $parent, false, 5, ['value_hidden']);
         $this->product('product_other_cat', $other, true, 5, ['value_other_cat']);
+
+        // Кожну умову виконує якийсь товар значення, але жоден не виконує всі.
+        $this->product('product_split_no_stock', $parent, true, 0, ['value_split_flags']);
+        $this->product('product_split_hidden', $parent, false, 5, ['value_split_flags']);
+        $this->product('product_split_in_category', $parent, false, 0, ['value_split_category']);
+        $this->product('product_split_elsewhere', $side, true, 5, ['value_split_category']);
 
         // Товару немає, а варіант і рядок зв'язку лишилися: так виглядає база після ручного видалення.
         $orphanProduct = (int) $this->pdo->fetchValue("SELECT COALESCE(MAX(id), 0) + 1000000 FROM {$this->px}products");

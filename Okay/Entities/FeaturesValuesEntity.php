@@ -41,10 +41,7 @@ class FeaturesValuesEntity extends Entity
     protected static $tableAlias = 'fv';
 
     /** Умови на товар, які режим існування переносить у підзапит. */
-    private const array EXISTENCE_CONDITIONS = ['in_stock'];
-
-    /** Умови на товар, які читає старий шлях; поза EXISTENCE_CONDITIONS вони вимикають режим. */
-    private const array PRODUCTS_CONDITIONS = ['visible', 'in_stock', 'have_products_in_categories'];
+    private const array EXISTENCE_CONDITIONS = ['visible', 'in_stock', 'have_products_in_categories'];
 
     /** Фільтри, що читають pf/p або звужують по товарах власним SQL: з ними лишається старий шлях. */
     private const array EXISTENCE_BLOCKERS = ['features', 'product_id', 'brand_id', 'other_filter', 'price', 'product_keyword', 'brand'];
@@ -195,12 +192,9 @@ class FeaturesValuesEntity extends Entity
         }
 
         $conditions = [];
-        foreach (self::PRODUCTS_CONDITIONS as $condition) {
+        foreach (self::EXISTENCE_CONDITIONS as $condition) {
             if (!isset($filter[$condition])) {
                 continue;
-            }
-            if (!in_array($condition, self::EXISTENCE_CONDITIONS, true)) {
-                return $legacy;
             }
             $conditions[$condition] = $filter[$condition];
             unset($filter[$condition]);
