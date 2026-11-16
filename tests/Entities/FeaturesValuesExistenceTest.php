@@ -33,7 +33,8 @@ class FeaturesValuesExistenceTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/JOIN __products AS p\b/', $sql);
         self::assertStringContainsString('pfe.value_id = fv.id', $sql);
         self::assertStringContainsString('pe.id = pfe.product_id', $sql);
-        self::assertStringContainsString('LIMIT 1) = 1', $sql);
+        self::assertStringContainsString('pve.product_id = pe.id', $sql, 'варіанти саме товару з підзапиту');
+        self::assertStringContainsString('(pve.stock IS NULL OR pve.stock > 0)', $sql, 'умова наявності');
         self::assertSame(1, substr_count($sql, '__products_features_values AS pfe'), 'один підзапит на значення');
     }
 
@@ -116,13 +117,14 @@ class FeaturesValuesExistenceTest extends TestCase
 
         self::assertMatchesRegularExpression('/JOIN __products_categories AS pce\b/', $sql);
         self::assertDoesNotMatchRegularExpression('/__products AS pe\b/', $sql);
+        self::assertStringNotContainsString('__variants', $sql);
         self::assertDoesNotMatchRegularExpression('/JOIN __products_features_values AS pf\b/', $sql);
     }
 
     /** @return array<string, array{int, bool}> */
     public static function categorySizeProvider(): array
     {
-        $threshold = (new ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_MIN_CATEGORY_PRODUCTS'))->getValue();
+        $threshold = (new ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_MIN_VISIBLE_PRODUCTS'))->getValue();
 
         return [
             'на одиницю менше порогу' => [$threshold - 1, false],
@@ -140,7 +142,11 @@ class FeaturesValuesExistenceTest extends TestCase
             'have_products_in_categories' => [3, 4],
         ], [], $categoryProducts);
 
-        self::assertMatchesRegularExpression('/COUNT\(\*\) AS count FROM __products_categories WHERE category_id IN \(/', $captured['queries'][0]);
+        self::assertMatchesRegularExpression(
+            '/COUNT\(DISTINCT sp\.id\) AS count FROM __products_categories AS spc INNER JOIN __products AS sp ON sp\.id = spc\.product_id AND sp\.visible = 1 WHERE spc\.category_id IN \(/',
+            $captured['queries'][0],
+            'поріг рахує лише видимі товари'
+        );
         if ($existence) {
             self::assertStringContainsString('pfe.value_id = fv.id', $captured['sql']);
         } else {

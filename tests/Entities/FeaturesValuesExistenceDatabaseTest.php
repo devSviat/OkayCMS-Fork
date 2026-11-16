@@ -254,6 +254,20 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         self::assertSame($this->foundIds($big + [self::PROBE => true]), $this->foundIds($big));
     }
 
+    /** Приховані товари поріг не наповнюють: така категорія лишається на старому шляху з тим самим результатом. */
+    public function testMostlyHiddenCategoryKeepsLegacyPath(): void
+    {
+        $category = $this->insert('categories', ['parent_id' => 0, 'name' => 'fx hidden big', 'url' => 'fx-hidden-big', 'visible' => 1]);
+        $this->fillCategory($category, self::threshold(), false);
+        $this->product('product_in_hidden_big', $category, true, 5, ['value_in_stock']);
+
+        $filter = ['feature_id' => $this->featureIds(), 'visible' => 1, 'have_products_in_categories' => [$category]];
+
+        self::assertStringNotContainsString('pfe', $this->findSql($filter), 'приховані товари пустили категорію в режим існування');
+        self::assertSame([$this->ids['value_in_stock']], $this->foundIds($filter));
+        self::assertSame($this->foundIds($filter + [self::PROBE => true]), $this->foundIds($filter));
+    }
+
     /** cf із кількома дочірніми категоріями дає рядок на кожну; GROUP BY схлопує їх. */
     public function testFeatureInTwoChildCategoriesNotDuplicated(): void
     {
@@ -394,14 +408,28 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         $this->insert('products_features_values', ['product_id' => $orphanProduct, 'value_id' => $this->ids['value_orphan']]);
         $this->ids['product_orphan'] = $orphanProduct;
 
-        // Батьківська категорія має бути не меншою за поріг режиму існування. Зв'язки на
-        // неіснуючі товари не мають рядків pf, тож вибірки не змінюють, лише лічильник.
-        $threshold = (new \ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_MIN_CATEGORY_PRODUCTS'))->getValue();
+        // Батьківська категорія має бути не меншою за поріг режиму існування. Товари-заповнювачі
+        // не мають рядків pf, тож вибірки не змінюють, лише лічильник.
+        $this->fillCategory($parent, self::threshold(), true);
+    }
+
+    private static function threshold(): int
+    {
+        return (new \ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_MIN_VISIBLE_PRODUCTS'))->getValue();
+    }
+
+    /** Товари без значень і варіантів: змінюють лише розмір категорії для порогу. */
+    private function fillCategory(int $categoryId, int $count, bool $visible): void
+    {
         $rows = [];
-        for ($i = 1; $i <= $threshold; $i++) {
-            $rows[] = sprintf('(%d, %d)', $orphanProduct + $i, $parent);
+        for ($i = 1; $i <= $count; $i++) {
+            $rows[] = sprintf("('fx fill', 'fx-fill-%d-%d', %d, %d)", $categoryId, $i, (int) $visible, $categoryId);
         }
-        $this->pdo->exec("INSERT INTO {$this->px}products_categories (product_id, category_id) VALUES " . implode(', ', $rows));
+        $this->pdo->exec("INSERT INTO {$this->px}products (name, url, visible, main_category_id) VALUES " . implode(', ', $rows));
+        $this->pdo->perform(
+            "INSERT INTO {$this->px}products_categories (product_id, category_id) SELECT id, :category FROM {$this->px}products WHERE url LIKE :prefix",
+            ['category' => $categoryId, 'prefix' => "fx-fill-{$categoryId}-%"]
+        );
     }
 
     private function value(int $featureId, string $value, int $position): int

@@ -47,11 +47,12 @@ class FeaturesValuesEntity extends Entity
     private const array EXISTENCE_BLOCKERS = ['features', 'product_id', 'brand_id', 'other_filter', 'price', 'product_keyword', 'brand'];
 
     /**
-     * Підзапит існування перебирає кожне значення-кандидат, і для значення без товарів
-     * у категорії проходить усі його зв'язки. Старий план малої категорії натомість
-     * починає з її товарів, тож нижче цього розміру він дешевший.
+     * Підзапит існування перебирає кожне значення-кандидат, і для значення без видимих
+     * товарів у категорії проходить усі його зв'язки. Старий план малої категорії
+     * натомість починає з її товарів, тож нижче цієї кількості видимих товарів він дешевший.
+     * Приховані товари не рахуються: категорія з них ціною й поводиться як мала.
      */
-    private const int EXISTENCE_MIN_CATEGORY_PRODUCTS = 300;
+    private const int EXISTENCE_MIN_VISIBLE_PRODUCTS = 300;
 
     /** @var bool Чи роздув поточний find() вибірку джойном pf. Поза find() — консервативне true. */
     private $productsValuesJoined = true;
@@ -212,7 +213,7 @@ class FeaturesValuesEntity extends Entity
     }
 
     /**
-     * Рахує зв'язки товар–категорія лише за індексом category_id, без джойнів.
+     * Рахує видимі товари категорій фільтра: pc за індексом category_id, p за первинним ключем.
      *
      * @param array $conditions умови з extractProductsExistence()
      */
@@ -223,13 +224,14 @@ class FeaturesValuesEntity extends Entity
         }
 
         $select = $this->queryFactory->newSelect();
-        $select->cols(['COUNT(*) AS count'])
-            ->from('__products_categories')
-            ->where('category_id IN (:size_categories)', ['size_categories' => (array)$conditions['have_products_in_categories']]);
+        $select->cols(['COUNT(DISTINCT sp.id) AS count'])
+            ->from('__products_categories AS spc')
+            ->join('INNER', '__products AS sp', 'sp.id = spc.product_id AND sp.visible = 1')
+            ->where('spc.category_id IN (:size_categories)', ['size_categories' => (array)$conditions['have_products_in_categories']]);
 
         $this->db->query($select);
 
-        return (int)$this->db->result('count') < self::EXISTENCE_MIN_CATEGORY_PRODUCTS;
+        return (int)$this->db->result('count') < self::EXISTENCE_MIN_VISIBLE_PRODUCTS;
     }
 
     /**
@@ -237,8 +239,10 @@ class FeaturesValuesEntity extends Entity
      * той самий товар. Скаляр із LIMIT, а не EXISTS: MariaDB не робить із нього
      * semi-join і лишає залежний підзапит по pfe.value_id.
      *
-     * Аліаси й bind-імена не перетинаються з зовнішнім запитом: масиви Aura.Sql
-     * розгортає через str_replace, тож спільний префікс зіпсував би інший bind.
+     * Аліаси й bind-імена не перетинаються з зовнішнім запитом: bind-и підзапиту
+     * зливаються з зовнішніми, і однакове ім'я перезаписало б значення. Префікс
+     * важить лише для масивів, переданих у where(): їх Aura.SqlQuery getCond()
+     * підставляє через str_replace.
      *
      * @param array $conditions умови з extractProductsExistence()
      */
