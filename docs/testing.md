@@ -77,6 +77,9 @@ failOnWarning="true"
 | `Core/Console/CommandNamesTest` | лишити команду без `#[AsCommand]` — це кладе весь `./ok` |
 | `Core/QueryFactory/NoPositionalBindsTest` | позиційні `?` у `where()`, яких aura 3 не вміє |
 | `Security/NoDatabaseChangeTest`, `Security/UpgradeNotesTest` | розійтись зі станом, зафіксованим ітерацією безпеки |
+| `Entities/FeaturesValuesExistenceTest` | змінити форму запиту режиму існування у `FeaturesValuesEntity::find()`: другий підзапит, джойн `pf`/`p`/`pc` поряд із підзапитом, склеєні замість bind значення, bind-імена зі спільним префіксом, режим попри блокер чи модульний фільтр, або фасет малої категорії (видимих товарів менше `EXISTENCE_MIN_VISIBLE_PRODUCTS`) поза старим шляхом; умову наявності варіантів у підзапиті |
+| `Entities/FeaturesValuesExistenceDatabaseTest` | розійтись результатом режиму існування зі старим шляхом на MariaDB: невидимий товар, `stock = 0`/`NULL`, осиротілий `pf`, умови, які виконує не той самий товар, властивість у двох дочірніх категоріях, мала й велика категорія. Без бази тест пропускається, тож запускати на стенді й дивитись `Skipped: 0` |
+| `Entities/FeaturesValuesJoinsTest` | додати фільтр, що читає `pf.`/`p.`, не вписавши його в блокери режиму існування й не зробивши його умовою підзапиту: у режимі існування цих аліасів немає, і запит мовчки падає в лог |
 | `Entities/FeaturesValuesBrandSubqueryTest` | зняти `DISTINCT` у підзапиті `filter__brand` там, де зовнішню вибірку роздув джойн `pf`, або лишити його там, де не роздув |
 | `Entities/FeaturesBrandSubqueryTest` | повернути `DISTINCT` у підзапит `filter__brand` у `FeaturesEntity` — блок фільтрів лишиться правильним, лише повільнішим |
 | `Core/DynamicJsPageIsolationTest` | повернути спільний на всю сесію слот змінних `scripts.tpl`, перестати скидати знімок на візиті або знову класти в нього `keyword` — блок фільтрів підміниться чужим, прапорець форми застрягне, а живий пошук витіснить знімки сторінок |
