@@ -46,6 +46,13 @@ class FeaturesValuesEntity extends Entity
     /** Фільтри, що читають pf/p або звужують по товарах власним SQL: з ними лишається старий шлях. */
     private const array EXISTENCE_BLOCKERS = ['features', 'product_id', 'brand_id', 'other_filter', 'price', 'product_keyword', 'brand'];
 
+    /**
+     * Підзапит існування перебирає кожне значення-кандидат, і для значення без товарів
+     * у категорії проходить усі його зв'язки. Старий план малої категорії натомість
+     * починає з її товарів, тож нижче цього розміру він дешевший.
+     */
+    private const int EXISTENCE_MIN_CATEGORY_PRODUCTS = 300;
+
     /** @var bool Чи роздув поточний find() вибірку джойном pf. Поза find() — консервативне true. */
     private $productsValuesJoined = true;
 
@@ -95,8 +102,9 @@ class FeaturesValuesEntity extends Entity
     {
         $this->select->groupBy([$this->getTableAlias().'.id']);
 
-        [$filter, $productsConditions] = $this->extractProductsExistence($filter);
-        if ($productsConditions !== []) {
+        [$existenceFilter, $productsConditions] = $this->extractProductsExistence($filter);
+        if ($productsConditions !== [] && !$this->categoriesTooSmallForExistence($productsConditions)) {
+            $filter = $existenceFilter;
             $this->whereProductsExist($productsConditions);
         }
 
@@ -201,6 +209,27 @@ class FeaturesValuesEntity extends Entity
         }
 
         return [$filter, $conditions];
+    }
+
+    /**
+     * Рахує зв'язки товар–категорія лише за індексом category_id, без джойнів.
+     *
+     * @param array $conditions умови з extractProductsExistence()
+     */
+    private function categoriesTooSmallForExistence(array $conditions): bool
+    {
+        if (!isset($conditions['have_products_in_categories'])) {
+            return false;
+        }
+
+        $select = $this->queryFactory->newSelect();
+        $select->cols(['COUNT(*) AS count'])
+            ->from('__products_categories')
+            ->where('category_id IN (:size_categories)', ['size_categories' => (array)$conditions['have_products_in_categories']]);
+
+        $this->db->query($select);
+
+        return (int)$this->db->result('count') < self::EXISTENCE_MIN_CATEGORY_PRODUCTS;
     }
 
     /**

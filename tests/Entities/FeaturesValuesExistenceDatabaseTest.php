@@ -233,6 +233,23 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         }
     }
 
+    /**
+     * Мала категорія лишається на старому шляху, велика йде в режим існування,
+     * і обидві дають ту саму вибірку, що й еталон.
+     */
+    public function testCategorySizeChoosesPathWithSameResult(): void
+    {
+        $small = ['feature_id' => $this->featureIds(), 'visible' => 1, 'have_products_in_categories' => [$this->ids['category_other']]];
+        $big = ['feature_id' => $this->featureIds(), 'visible' => 1, 'have_products_in_categories' => $this->categoryTree()];
+
+        self::assertStringNotContainsString('pfe', $this->findSql($small), 'мала категорія пішла в режим існування');
+        self::assertStringContainsString('pfe', $this->findSql($big), 'велика категорія лишилась на старому шляху');
+
+        self::assertSame([$this->ids['value_other_cat']], $this->foundIds($small));
+        self::assertSame($this->foundIds($small + [self::PROBE => true]), $this->foundIds($small));
+        self::assertSame($this->foundIds($big + [self::PROBE => true]), $this->foundIds($big));
+    }
+
     /** cf із кількома дочірніми категоріями дає рядок на кожну; GROUP BY схлопує їх. */
     public function testFeatureInTwoChildCategoriesNotDuplicated(): void
     {
@@ -372,6 +389,15 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         $this->insert('variants', ['product_id' => $orphanProduct, 'stock' => 5, 'price' => 1]);
         $this->insert('products_features_values', ['product_id' => $orphanProduct, 'value_id' => $this->ids['value_orphan']]);
         $this->ids['product_orphan'] = $orphanProduct;
+
+        // Батьківська категорія має бути не меншою за поріг режиму існування. Зв'язки на
+        // неіснуючі товари не мають рядків pf, тож вибірки не змінюють, лише лічильник.
+        $threshold = (new \ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_MIN_CATEGORY_PRODUCTS'))->getValue();
+        $rows = [];
+        for ($i = 1; $i <= $threshold; $i++) {
+            $rows[] = sprintf('(%d, %d)', $orphanProduct + $i, $parent);
+        }
+        $this->pdo->exec("INSERT INTO {$this->px}products_categories (product_id, category_id) VALUES " . implode(', ', $rows));
     }
 
     private function value(int $featureId, string $value, int $position): int

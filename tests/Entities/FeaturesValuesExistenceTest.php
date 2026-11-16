@@ -119,6 +119,45 @@ class FeaturesValuesExistenceTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/JOIN __products_features_values AS pf\b/', $sql);
     }
 
+    /** @return array<string, array{int, bool}> */
+    public static function categorySizeProvider(): array
+    {
+        $threshold = (new ReflectionClassConstant(FeaturesValuesEntity::class, 'EXISTENCE_MIN_CATEGORY_PRODUCTS'))->getValue();
+
+        return [
+            'на одиницю менше порогу' => [$threshold - 1, false],
+            'рівно поріг' => [$threshold, true],
+        ];
+    }
+
+    #[DataProvider('categorySizeProvider')]
+    public function testSmallCategoryFacetKeepsLegacyPath(int $categoryProducts, bool $existence): void
+    {
+        $captured = self::findSql([
+            'visible' => 1,
+            'feature_id' => [1, 2],
+            'category_id' => [3, 4],
+            'have_products_in_categories' => [3, 4],
+        ], [], $categoryProducts);
+
+        self::assertMatchesRegularExpression('/COUNT\(\*\) AS count FROM __products_categories WHERE category_id IN \(/', $captured['queries'][0]);
+        if ($existence) {
+            self::assertStringContainsString('pfe.value_id = fv.id', $captured['sql']);
+        } else {
+            self::assertLegacy($captured['sql']);
+            self::assertMatchesRegularExpression('/JOIN __products_categories AS pc\b/', $captured['sql']);
+        }
+    }
+
+    /** Без категорії рахувати нічого: /all-products і база з hide ідуть у режим існування без запиту. */
+    public function testNoCategoryCountWithoutCategories(): void
+    {
+        $captured = self::findSql(['feature_id' => [1], 'visible' => 1, 'in_stock' => true], [], 0);
+
+        self::assertCount(1, $captured['queries']);
+        self::assertStringContainsString('pfe.value_id = fv.id', $captured['sql']);
+    }
+
     public function testSelectedFeaturesKeepLegacyPath(): void
     {
         $sql = self::findSql([
@@ -210,14 +249,14 @@ class FeaturesValuesExistenceTest extends TestCase
      * @param string[] $moduleFilterNames
      * @return array{sql: string, binds: array<string, mixed>}
      */
-    private static function findSql(array $filter, array $moduleFilterNames = []): array
+    private static function findSql(array $filter, array $moduleFilterNames = [], int $categoryProducts = 100000): array
     {
         $class = new ReflectionClass(FeaturesValuesEntity::class);
         $entity = $class->newInstanceWithoutConstructor();
         $parent = $class->getParentClass();
 
         $queryFactory = new ExistenceQueryFactory();
-        $db = new ExistenceCapturingDatabase();
+        $db = new ExistenceCapturingDatabase($categoryProducts);
 
         $parent->getProperty('queryFactory')->setValue($entity, $queryFactory);
         $parent->getProperty('select')->setValue($entity, $queryFactory->newSelect());
@@ -228,7 +267,9 @@ class FeaturesValuesExistenceTest extends TestCase
 
         $entity->find($filter);
 
-        return ['sql' => preg_replace('/\s+/', ' ', str_replace('`', '', $db->sql)), 'binds' => $db->binds];
+        $normalize = static fn (string $sql): string => preg_replace('/\s+/', ' ', str_replace('`', '', $sql));
+
+        return ['sql' => $normalize($db->sql), 'binds' => $db->binds, 'queries' => array_map($normalize, $db->queries)];
     }
 }
 
@@ -259,6 +300,13 @@ class ExistenceCapturingDatabase
 {
     public string $sql = '';
 
+    /** @var string[] */
+    public array $queries = [];
+
+    public function __construct(private int $categoryProducts)
+    {
+    }
+
     /** @var array<string, mixed> */
     public array $binds = [];
 
@@ -266,6 +314,7 @@ class ExistenceCapturingDatabase
     {
         $this->sql = $query->getStatement();
         $this->binds = $query->getBindValues();
+        $this->queries[] = $this->sql;
 
         return true;
     }
@@ -273,6 +322,11 @@ class ExistenceCapturingDatabase
     public function results($field = null, $mapped = null): array
     {
         return [];
+    }
+
+    public function result($field = null)
+    {
+        return $field === 'count' ? $this->categoryProducts : null;
     }
 }
 
