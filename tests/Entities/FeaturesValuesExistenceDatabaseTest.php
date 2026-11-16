@@ -33,6 +33,9 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
     /** @var array<string, int> */
     private array $ids = [];
 
+    /** З'єднання ліниве: без бази inTransaction() у tearDown() кинув би той самий PDOException, що й setUp(). */
+    private bool $inTransaction = false;
+
     protected function setUp(): void
     {
         try {
@@ -49,6 +52,7 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
         $this->px = $prefix;
 
         $this->pdo->beginTransaction();
+        $this->inTransaction = true;
         $this->buildFixture();
 
         $this->modulesFilters()->registerFilter(FeaturesValuesEntity::class, self::PROBE, LegacyPathProbeFilter::class, 'apply');
@@ -56,7 +60,7 @@ class FeaturesValuesExistenceDatabaseTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (isset($this->pdo) && $this->pdo->inTransaction()) {
+        if ($this->inTransaction && $this->pdo->inTransaction()) {
             $this->pdo->rollBack();
         }
 
