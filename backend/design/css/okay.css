@@ -2382,6 +2382,8 @@ select{
     position: relative;
     transition: background 0.15s ease-in-out 0s, color 0.15s ease-in-out 0s;
     width: 20px;
+    /* У flex-плитці з широкою картинкою (логотип доставки) квадрат інакше стискається. */
+    flex-shrink: 0;
     margin-right: 10px;
     text-align: center;
 }
