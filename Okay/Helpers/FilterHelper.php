@@ -56,6 +56,8 @@ class FilterHelper
 
     private $featureValuesCache = [];
 
+    private ?array $brandsOrder = null;
+
     public function __construct(
         EntityFactory     $entityFactory,
         Settings          $settings,
@@ -927,10 +929,16 @@ class FilterHelper
         }
 
         if (count($brandsUrls) > 1) {
-            $brandsEntity = $this->entityFactory->get(BrandsEntity::class);
-            $sortedBrandsUrls = $brandsEntity->cols(['url'])
-                ->order('position')
-                ->find(['url' => $brandsUrls]);
+            $order = $this->brandsOrder();
+            $sortedBrandsUrls = [];
+            foreach ($brandsUrls as $url) {
+                $key = mb_strtolower((string)$url);
+                if (isset($order[$key])) {
+                    $sortedBrandsUrls[$key] = $order[$key];
+                }
+            }
+            uasort($sortedBrandsUrls, static fn(array $a, array $b) => [$a['position'], $a['id']] <=> [$b['position'], $b['id']]);
+            $sortedBrandsUrls = array_column($sortedBrandsUrls, 'url');
         } else {
             $sortedBrandsUrls = $brandsUrls;
         }
@@ -940,6 +948,32 @@ class FilterHelper
         }
 
         return ExtenderFacade::execute(__METHOD__, $sortedBrandsUrls, func_get_args());
+    }
+
+    /**
+     * Позиції всіх брендів одним запитом на життя хелпера: sortBrands() викликається
+     * для кожного посилання фільтра, а запит на кожне посилання давав сотні звернень.
+     * Сортування в PHP, бо кожен виклик упорядковує свою підмножину спільної мапи.
+     * Ключ у нижньому регістрі повторює нечутливе до регістру порівняння бази.
+     */
+    private function brandsOrder(): array
+    {
+        if ($this->brandsOrder !== null) {
+            return $this->brandsOrder;
+        }
+
+        $rows = $this->entityFactory->get(BrandsEntity::class)->cols(['id', 'url', 'position'])->find();
+
+        $this->brandsOrder = [];
+        foreach ($rows as $row) {
+            $this->brandsOrder[mb_strtolower((string)$row->url)] = [
+                'url' => (string)$row->url,
+                'position' => (int)$row->position,
+                'id' => (int)$row->id,
+            ];
+        }
+
+        return $this->brandsOrder;
     }
 
     private function sortFeatures($features = [])

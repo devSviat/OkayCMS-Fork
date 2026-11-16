@@ -92,6 +92,33 @@ class FeaturesValuesJoinsTest extends TestCase
         );
     }
 
+    /**
+     * У режимі існування pf і p не джойняться, тож фільтр, що їх читає, мусить або
+     * вимкнути режим (блокер), або бути умовою, яку виконує сам підзапит. Інакше
+     * запит падає в лог мовчки.
+     */
+    #[DataProvider('productsAliasUsageProvider')]
+    public function testExistenceModeExcludesEveryAliasReader(string $filterName, string $alias): void
+    {
+        $class = new ReflectionClass(FeaturesValuesEntity::class);
+        $entity = $class->newInstanceWithoutConstructor();
+        $class->getParentClass()->getProperty('modulesFilters')->setValue($entity, self::modulesFilters([]));
+
+        [, $conditions] = $class->getMethod('extractProductsExistence')
+            ->invoke($entity, ['in_stock' => true, $filterName => 1]);
+
+        self::assertTrue(
+            $conditions === [] || array_key_exists($filterName, $conditions),
+            sprintf('filter__%s читає %s., але режим існування його не вимикає й не покриває', $filterName, $alias)
+        );
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function productsAliasUsageProvider(): array
+    {
+        return array_filter(self::aliasUsageProvider(), static fn (array $case): bool => $case[1] !== 'f');
+    }
+
     /** @return array<string, array{string, string}> */
     public static function aliasUsageProvider(): array
     {
