@@ -94,14 +94,12 @@ class Database
             $this->result = null;
             $this->affectedRows = null;
             
-            // Получаем все плейсхолдеры
+            // Текст запиту — перед прив'язками: Aura Insert::addRows() добудовує останній рядок
+            // пакета лише під час збирання тексту, і без цього вставка двох рядків губить значення другого.
+            $statement = $this->tablePrefix($query);
             $bind = $query->getBindValues();
 
-            // Подготавливаем запрос для выполнения добавляя данные из плейсхолдеров
-            $this->result = $this->pdo->perform(
-                $this->tablePrefix($query),
-                $bind
-            );
+            $this->result = $this->pdo->perform($statement, $bind);
 
             $this->affectedRows = $this->result->rowCount();
 
