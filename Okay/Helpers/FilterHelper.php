@@ -953,8 +953,8 @@ class FilterHelper
     /**
      * Позиції всіх брендів одним запитом на життя хелпера: sortBrands() викликається
      * для кожного посилання фільтра, а запит на кожне посилання давав сотні звернень.
-     * Сортування в PHP, бо order() у сутності фінальний і не мокається в тестах.
-     * Без noLimit() брендів понад 100 випали б із мапи. Ключ у нижньому регістрі повторює нечутливе до регістру порівняння бази.
+     * Сортування в PHP, бо кожен виклик упорядковує свою підмножину спільної мапи.
+     * Ключ у нижньому регістрі повторює нечутливе до регістру порівняння бази.
      */
     private function brandsOrder(): array
     {
@@ -962,7 +962,7 @@ class FilterHelper
             return $this->brandsOrder;
         }
 
-        $rows = $this->entityFactory->get(BrandsEntity::class)->cols(['id', 'url', 'position'])->noLimit()->find();
+        $rows = $this->entityFactory->get(BrandsEntity::class)->cols(['id', 'url', 'position'])->find();
 
         $this->brandsOrder = [];
         foreach ($rows as $row) {
