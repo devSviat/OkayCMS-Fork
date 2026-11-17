@@ -27,7 +27,6 @@
                             <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard">{$sku}</a> - {/literal}{$btr->seo_patterns_ajax_product_sku|escape}</li>{literal}
                             <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard">{$sitename}</a> - {/literal}{$btr->seo_patterns_ajax_site_name|escape}</li>{literal}
                             <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard" data-copy-string="{$if}{$endif}">{$if}…{$endif}</a> - {/literal}{$btr->seo_patterns_ajax_if_block|escape}{literal}</li>
-                            <li>{/literal}{$btr->seo_patterns_ajax_if_example|escape}{literal}</li>
                         {/literal}
                         {foreach $features as $feature}
                             {if $feature->auto_name_id && $feature->auto_value_id}
@@ -35,8 +34,6 @@
                                     <span>"{$feature->name|escape}": </span>
                                     <span>{$btr->general_name|escape} - {literal}{${/literal}{$feature->auto_name_id|escape}{literal}}{/literal};</span>
                                     <span>{$btr->seo_patterns_ajax_value|escape} - {literal}{${/literal}{$feature->auto_value_id|escape}{literal}}{/literal}</span>
-                                    {capture assign=ifSnippet}{literal}{$if}<p><b>{${/literal}{$feature->auto_name_id}{literal}}</b> {${/literal}{$feature->auto_value_id}{literal}}</p>{$endif}{/literal}{/capture}
-                                    <div>{$btr->seo_patterns_ajax_if_feature|escape}: <a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard" data-copy-string="{$ifSnippet|escape}">{$ifSnippet|escape}</a></div>
                                 </li>
                             {/if}
                         {/foreach}
