@@ -515,6 +515,7 @@ $lang['seo_patterns_ajax_product_name'] = 'Назва товару';
 $lang['seo_patterns_ajax_product_price'] = 'Ціна товару';
 $lang['seo_patterns_ajax_products_description'] = 'Шаблон опису товарів';
 $lang['seo_patterns_ajax_site_name'] = 'Назва сайту';
+$lang['seo_patterns_ajax_if_block'] = 'щоб рядок не показувався, коли значення порожнє, оберніть його: {$if}<p><b>Тип:</b> {$type-value}</p>{$endif}';
 $lang['seo_patterns_ajax_value'] = 'значення';
 $lang['seo_patterns_auto'] = 'SEO товарів';
 $lang['seo_patterns_cat_name'] = '';

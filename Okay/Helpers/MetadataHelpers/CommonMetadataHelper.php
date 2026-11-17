@@ -5,6 +5,7 @@ namespace Okay\Helpers\MetadataHelpers;
 
 
 use Okay\Core\Design;
+use Okay\Core\MetadataTemplate;
 use Okay\Core\Modules\Extender\ExtenderFacade;
 use Okay\Core\Money;
 use Okay\Core\ServiceLocator;
@@ -34,10 +35,16 @@ class CommonMetadataHelper implements MetadataInterface
     protected $metaKeywords = '';
     protected $metaDescription = '';
 
-    public function __construct()
+    protected MetadataTemplate $metadataTemplate;
+
+    /**
+     * Параметр необов'язковий: підкласи в модулях кличуть parent::__construct() без аргументів.
+     */
+    public function __construct(?MetadataTemplate $metadataTemplate = null)
     {
         $SL = ServiceLocator::getInstance();
         $this->SL = $SL;
+        $this->metadataTemplate = $metadataTemplate ?? $SL->getService(MetadataTemplate::class);
         $this->design = $SL->getService(Design::class);
         $this->settings = $SL->getService(Settings::class);
         $this->money = $SL->getService(Money::class);
@@ -171,8 +178,7 @@ class CommonMetadataHelper implements MetadataInterface
 
     protected function compileMetadata($pattern)
     {
-        $metaData = strtr($pattern, $this->getParts());
-        $metaData = trim(preg_replace('/{\$[^$]*}/', '', $metaData));
+        $metaData = $this->metadataTemplate->compile($pattern, $this->getParts());
         return ExtenderFacade::execute([static::class, __FUNCTION__], $metaData, func_get_args());
     }
 }

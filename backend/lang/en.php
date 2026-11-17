@@ -515,6 +515,7 @@ $lang['seo_patterns_ajax_product_name'] = 'Product name';
 $lang['seo_patterns_ajax_product_price'] = 'Product price';
 $lang['seo_patterns_ajax_products_description'] = 'Products description template';
 $lang['seo_patterns_ajax_site_name'] = 'Site name';
+$lang['seo_patterns_ajax_if_block'] = 'to hide a line when its value is empty, wrap it: {$if}<p><b>Type:</b> {$type-value}</p>{$endif}';
 $lang['seo_patterns_ajax_value'] = 'value';
 $lang['seo_patterns_auto'] = 'SEO products';
 $lang['seo_patterns_cat_name'] = 'Categories name';

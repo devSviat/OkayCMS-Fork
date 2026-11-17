@@ -387,6 +387,9 @@ $services = [
     Translit::class => [
         'class' => Translit::class,
     ],
+    MetadataTemplate::class => [
+        'class' => MetadataTemplate::class,
+    ],
     ManagerMenu::class => [
         'class' => ManagerMenu::class,
         'arguments' => [

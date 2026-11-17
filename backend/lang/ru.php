@@ -515,6 +515,7 @@ $lang['seo_patterns_ajax_product_name'] = 'Название товара';
 $lang['seo_patterns_ajax_product_price'] = 'Цена товара';
 $lang['seo_patterns_ajax_products_description'] = 'Шаблон описания товаров';
 $lang['seo_patterns_ajax_site_name'] = 'Название сайта';
+$lang['seo_patterns_ajax_if_block'] = 'чтобы строка не показывалась, когда значение пустое, оберните её: {$if}<p><b>Тип:</b> {$type-value}</p>{$endif}';
 $lang['seo_patterns_ajax_value'] = 'значение';
 $lang['seo_patterns_auto'] = 'SEO товаров';
 $lang['seo_patterns_cat_name'] = '';
