@@ -91,6 +91,34 @@ class BrandsEntity extends Entity
         return parent::find($filter);
     }
     
+    /**
+     * Id брендів для кожної категорії за тими самими фільтрами, що й find(), одним запитом
+     * на весь набір категорій. Потрібен фільтр category_id; без ліміту в 100 записів.
+     *
+     * @return array<int, int[]> id категорії => id брендів
+     */
+    public function findCategoriesBrandsIds(array $filter): array
+    {
+        if (empty($filter['category_id'])) {
+            return ExtenderFacade::execute([static::class, __FUNCTION__], [], func_get_args());
+        }
+
+        $this->joinProductsForModuleFilters($filter);
+        $select = $this->noLimit()->getSelect($filter);
+        $select->resetCols()
+            ->resetOrderBy()
+            ->cols(['pc.category_id', 'b.id AS brand_id']);
+
+        $this->db->query($this->customChangeSelect($select));
+
+        $result = [];
+        foreach ($this->db->results() as $row) {
+            $result[(int)$row->category_id][] = (int)$row->brand_id;
+        }
+
+        return ExtenderFacade::execute([static::class, __FUNCTION__], $result, func_get_args());
+    }
+
     public function count(array $filter = [])
     {
         $this->joinProductsForModuleFilters($filter);

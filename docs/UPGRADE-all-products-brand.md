@@ -1,4 +1,4 @@
-# Оновлення: canonical і robots для «всіх товарів» із фільтром за брендом
+# Оновлення: індексація фільтра за брендом на «всіх товарах» і сторінці бренду
 
 Стосується всіх, у кого відкриті адреси `/all-products/brand-x`. Дій не потрібно: поки нові
 налаштування не змінені, сторінки віддають ті самі canonical і robots, що й раніше.
@@ -58,3 +58,24 @@ Robots налаштовуються окремо й не залежать від
 - `getCatalogCanonicalData()` і `getCatalogRobots()` працюють як раніше; `ProductsController`
   тепер викликає нові методи.
 - `setParams()` обох хелперів отримав необов'язковий останній аргумент.
+
+## Посилання на категорії зі сторінки бренду
+
+Сторінка бренду показує категорії бренду з посиланнями `/catalog/<категорія>/brand-<бренд>`.
+Якщо в категорії лише цей бренд, а «Приховувати поодинокі фільтри» (`hide_single_filters`) увімкнено,
+`CategoryController` відповідає на таку адресу 404. Тепер `BrandsHelper::assignBrandFilterProcedure()`
+передає в шаблон `$catalog_categories_without_brand_filter` (ключі — id таких категорій), а
+`features.tpl` тем із комплекту дає для них звичайну адресу категорії.
+
+- Рахується одним запитом на весь список: `FilterHelper::getCategoriesWithoutBrandFilter()`
+  через `BrandsEntity::findCategoriesBrandsIds()`.
+- Фільтр брендів категорії (`FilterHelper::getCategoryBrandsFilter()`) і правило приховування
+  єдиного бренду спільні з `CategoryController` і `getBrands()`, тож позначка й 404 не
+  розходяться. Розширення, що змінює результат `getBrands()`, у позначку не потрапляє.
+- Тема, яку не оновили, не використовує змінну й лишає старі посилання: нічого не ламається.
+  Щоб виправити свою тему, додайте перед гілкою з `filtersUrl=['brand' => $brand->url]`:
+
+```smarty
+{elseif isset($catalog_categories_without_brand_filter[$c->id])}
+    href="{url_generator route="category" url=$c->url}"
+```

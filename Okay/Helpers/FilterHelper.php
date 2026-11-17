@@ -175,19 +175,82 @@ class FilterHelper
         /** @var BrandsEntity $brandsEntity */
         $brandsEntity = $this->entityFactory->get(BrandsEntity::class);
         $brands = $brandsEntity->mappedBy('id')->find($brandsFilter);
-        // Если в фильтре только один бренд и он не выбран, тогда вообще не выводим фильтр по бренду
-        if (
-            ($firstBrand = reset($brands))
-            && $this->settings->get('hide_single_filters')
-            && count($brands) <= 1
-            && (
-                empty($brandsFilter['selected_brands'])
-                || !in_array($firstBrand->id, $brandsFilter['selected_brands'])
-            )
-        ) {
+        if ($this->hidesSingleBrand(array_column($brands, 'id'), $brandsFilter['selected_brands'] ?? [])) {
             $brands = [];
         }
         return ExtenderFacade::execute(__METHOD__, $brands, func_get_args());
+    }
+
+    /**
+     * Фільтр брендів категорії: за ним CategoryController перевіряє бренд з адреси.
+     *
+     * @param int[] $categoriesIds категорія разом з усіма підкатегоріями
+     */
+    public function getCategoryBrandsFilter(array $categoriesIds): array
+    {
+        $brandsFilter = [
+            'category_id' => $categoriesIds,
+            'visible' => 1,
+            'product_visible' => 1,
+        ];
+
+        return ExtenderFacade::execute(__METHOD__, $brandsFilter, func_get_args());
+    }
+
+    /**
+     * Id категорій зі списку, де адреса /catalog/<категорія>/brand-<бренд> віддала б 404:
+     * бренду немає в getBrands() за getCategoryBrandsFilter() піддерева категорії.
+     * Один запит на весь список замість getBrands() на кожну категорію.
+     *
+     * @param object[] $categories з полями id і children
+     * @return int[]
+     */
+    public function getCategoriesWithoutBrandFilter(int $brandId, array $categories): array
+    {
+        $result = [];
+
+        $subtreeIds = [];
+        foreach ($categories as $category) {
+            foreach ((array)$category->children as $childId) {
+                $subtreeIds[(int)$childId] = (int)$childId;
+            }
+        }
+
+        if (!empty($subtreeIds)) {
+            /** @var BrandsEntity $brandsEntity */
+            $brandsEntity = $this->entityFactory->get(BrandsEntity::class);
+            $brandsByCategory = $brandsEntity->findCategoriesBrandsIds(
+                $this->getCategoryBrandsFilter(array_values($subtreeIds))
+            );
+
+            foreach ($categories as $category) {
+                $brandsIds = [];
+                foreach ((array)$category->children as $childId) {
+                    foreach ($brandsByCategory[(int)$childId] ?? [] as $id) {
+                        $brandsIds[$id] = $id;
+                    }
+                }
+                if ($this->hidesSingleBrand(array_values($brandsIds), [])) {
+                    $brandsIds = [];
+                }
+                if (!isset($brandsIds[$brandId])) {
+                    $result[] = (int)$category->id;
+                }
+            }
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
+    }
+
+    /**
+     * Єдиний невибраний бренд фільтра не показується: він дав би сторінку, тотожну каталогу.
+     */
+    private function hidesSingleBrand(array $brandsIds, array $selectedBrandsIds): bool
+    {
+        return !empty($brandsIds)
+            && $this->settings->get('hide_single_filters')
+            && count($brandsIds) <= 1
+            && (empty($selectedBrandsIds) || !in_array(reset($brandsIds), $selectedBrandsIds));
     }
 
     /**
