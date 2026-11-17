@@ -61,6 +61,20 @@
                                 <div class="okay_list_row">
                                     <div class="okay_list_boding okay_list_settings_indexing_name">
                                         <div class="mt-h">
+                                            <div class="heading_label">{$btr->settings_indexing_all_products_brand}</div>
+                                            <select name="canonical_all_products_brand" class="selectpicker form-control col-xs-12 px-0">
+                                                <option value="0" {if !$settings->canonical_all_products_brand}selected=""{/if}>{$btr->settings_indexing_all_products_brand_inherit|escape}</option>
+                                                <option value="{CANONICAL_BRAND_PAGE}" {if $settings->canonical_all_products_brand == CANONICAL_BRAND_PAGE}selected=""{/if}>{$btr->settings_indexing_all_products_brand_val_brand_page|escape}</option>
+                                                <option value="{CANONICAL_WITHOUT_FILTER}" {if $settings->canonical_all_products_brand == CANONICAL_WITHOUT_FILTER}selected=""{/if}>{$btr->settings_indexing_all_products_brand_val_without_filter|escape}</option>
+                                                <option value="{CANONICAL_WITH_FILTER}" {if $settings->canonical_all_products_brand == CANONICAL_WITH_FILTER}selected=""{/if}>{$btr->settings_indexing_category_brand_val_2|escape}</option>
+                                                <option value="{CANONICAL_ABSENT}" {if $settings->canonical_all_products_brand == CANONICAL_ABSENT}selected=""{/if}>{$btr->settings_indexing_category_brand_val_3|escape}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="okay_list_row">
+                                    <div class="okay_list_boding okay_list_settings_indexing_name">
+                                        <div class="mt-h">
                                             <div class="heading_label">{$btr->settings_indexing_category_features}</div>
                                             <select name="canonical_category_features" class="selectpicker form-control col-xs-12 px-0">
                                                 <option value="{CANONICAL_WITHOUT_FILTER}" {if $settings->canonical_category_features == CANONICAL_WITHOUT_FILTER}selected=""{/if}>{$btr->settings_indexing_category_features_val_1|escape}</option>
@@ -160,6 +174,19 @@
                                         </div>
                                     </div>
                                  </div>
+                                <div class="okay_list_row">
+                                    <div class="okay_list_boding okay_list_settings_indexing_name">
+                                        <div class="mt-h">
+                                            <div class="heading_label">{$btr->settings_indexing_all_products_brand}</div>
+                                            <select name="robots_all_products_brand" class="selectpicker form-control col-xs-12 px-0">
+                                                <option value="0" {if !$settings->robots_all_products_brand}selected=""{/if}>{$btr->settings_indexing_all_products_brand_inherit|escape}</option>
+                                                <option value="{ROBOTS_INDEX_FOLLOW}" {if $settings->robots_all_products_brand == ROBOTS_INDEX_FOLLOW}selected=""{/if}>index,follow</option>
+                                                <option value="{ROBOTS_NOINDEX_FOLLOW}" {if $settings->robots_all_products_brand == ROBOTS_NOINDEX_FOLLOW}selected=""{/if}>noindex,follow</option>
+                                                <option value="{ROBOTS_NOINDEX_NOFOLLOW}" {if $settings->robots_all_products_brand == ROBOTS_NOINDEX_NOFOLLOW}selected=""{/if}>noindex,nofollow</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="okay_list_row">
                                     <div class="okay_list_boding okay_list_settings_indexing_name">
                                         <div class="mt-h">

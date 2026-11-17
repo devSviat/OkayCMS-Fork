@@ -25,6 +25,9 @@ class SettingsIndexingAdmin extends IndexAdmin
             $this->settings->set('canonical_category_brand', 
                 $this->request->post('canonical_category_brand', null, CANONICAL_WITHOUT_FILTER)
             );
+            $this->settings->set('canonical_all_products_brand',
+                $this->request->post('canonical_all_products_brand', 'integer')
+            );
             $this->settings->set('canonical_category_features', 
                 $this->request->post('canonical_category_features', null, CANONICAL_WITHOUT_FILTER)
             );
@@ -43,6 +46,9 @@ class SettingsIndexingAdmin extends IndexAdmin
             );
             $this->settings->set('robots_category_brand', 
                 $this->request->post('robots_category_brand', null, ROBOTS_INDEX_FOLLOW)
+            );
+            $this->settings->set('robots_all_products_brand',
+                $this->request->post('robots_all_products_brand', 'integer')
             );
             $this->settings->set('robots_category_features', 
                 $this->request->post('robots_category_features', null, ROBOTS_INDEX_FOLLOW)

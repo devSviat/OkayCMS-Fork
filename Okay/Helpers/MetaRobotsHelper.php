@@ -5,6 +5,7 @@ namespace Okay\Helpers;
 
 
 use Exception;
+use Okay\Core\Modules\Extender\ExtenderFacade;
 use Okay\Core\Settings;
 
 class MetaRobotsHelper
@@ -23,6 +24,9 @@ class MetaRobotsHelper
     private $maxFeaturesFilterDepth;
     private $maxFeaturesValuesFilterDepth;
     private $maxFilterDepth;
+
+    /** 0 — як для категорії з брендом */
+    private $allProductsBrand;
     
     private $features = [];
 
@@ -62,7 +66,8 @@ class MetaRobotsHelper
         $maxOtherFilterDepth,
         $maxFeaturesFilterDepth,
         $maxFeaturesValuesFilterDepth,
-        $maxFilterDepth
+        $maxFilterDepth,
+        $allProductsBrand = null
     ) {
         $this->catalogPagination = (int)$catalogPagination;
         $this->catalogPageAll = (int)$catalogPageAll;
@@ -76,7 +81,8 @@ class MetaRobotsHelper
         $this->maxFeaturesFilterDepth = (int)$maxFeaturesFilterDepth;
         $this->maxFeaturesValuesFilterDepth = (int)$maxFeaturesValuesFilterDepth;
         $this->maxFilterDepth = (int)$maxFilterDepth;
-        
+
+        $this->allProductsBrand = (int)$allProductsBrand;
     }
 
     /**
@@ -155,6 +161,34 @@ class MetaRobotsHelper
      */
     public function getCatalogRobots($page, array $otherFilter, array $featuresFilter, array $brandsFilter) : int
     {
+        return $this->catalogRobots($page, $otherFilter, $featuresFilter, $brandsFilter, $this->catalogBrand); // no ExtenderFacade
+    }
+
+    /**
+     * Robots сторінки всіх товарів: як getCatalogRobots(), але фільтр за брендом
+     * підпорядковується robots_all_products_brand, а незадане — robots_category_brand.
+     *
+     * @param string|int $page поточна сторінка, може бути all
+     * @throws Exception
+     */
+    public function getAllProductsRobots($page, array $otherFilter, array $featuresFilter, array $brandsFilter) : int
+    {
+        $robots = $this->catalogRobots(
+            $page,
+            $otherFilter,
+            $featuresFilter,
+            $brandsFilter,
+            $this->allProductsBrand ?: $this->catalogBrand
+        );
+
+        return ExtenderFacade::execute(__METHOD__, $robots, func_get_args());
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function catalogRobots($page, array $otherFilter, array $featuresFilter, array $brandsFilter, ?int $brandRobots) : int
+    {
         $page = $this->normalizePageAll($page);
 
         // Если хоть одно значение свойства отмечено как не идексировать - страница не индексируется
@@ -206,12 +240,12 @@ class MetaRobotsHelper
         }
 
         $baseCatalogRobots = $this->getBaseCatalogRobots($otherFilter);
-        $catalogRobots = $this->getCatalogRobotsExecutor($featuresFilter, $brandsFilter);
+        $catalogRobots = $this->getCatalogRobotsExecutor($featuresFilter, $brandsFilter, $brandRobots);
 
         return max($baseCatalogRobots, $catalogRobots, $paginationCatalogRobots); // no ExtenderFacade
     }
 
-    private function getCatalogRobotsExecutor(array $featuresFilter, array $brandsFilter) : int
+    private function getCatalogRobotsExecutor(array $featuresFilter, array $brandsFilter, ?int $brandRobots = null) : int
     {
         if (!empty($featuresFilter)) {
             foreach ($featuresFilter as $values) {
@@ -235,7 +269,7 @@ class MetaRobotsHelper
         }
 
         if (!empty($brandsFilter)) {
-            return $this->catalogBrand; // no ExtenderFacade
+            return $brandRobots ?? $this->catalogBrand; // no ExtenderFacade
         }
 
         return ROBOTS_INDEX_FOLLOW;
