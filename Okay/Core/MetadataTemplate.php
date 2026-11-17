@@ -13,7 +13,6 @@ class MetadataTemplate
 
     private const string PLACEHOLDER = '/{\$[^$]*}/';
     private const string STRICT_PLACEHOLDER = '/\{\$[^{}$\s]*\}/';
-    private const string REMOVED = "~([ \t]*)((?:\x01[ \t]*)+)(\r?\n)?((?:[ \t]*\r?\n)*)~";
 
     /** Шаблонів на сторінку чи фід одиниці; межа — лише запобіжник для довгих CLI-процесів. */
     private const int CACHE_LIMIT = 512;
@@ -23,7 +22,8 @@ class MetadataTemplate
 
     /**
      * Підставляє змінні. Блок `{$if}…{$endif}` виводиться, лише якщо всі змінні в ньому
-     * непорожні; інакше зникає разом із підписами. Блоки не вкладаються: вкладені, зайві чи
+     * непорожні (значення з самих пробілів — порожнє, '0' — ні); інакше зникає разом із
+     * підписами, нічого не додаючи на своє місце. Блоки не вкладаються: вкладені, зайві чи
      * незакриті маркери прибираються, а текст між ними лишається. Шаблон без маркерів іде
      * старою підстановкою без змін.
      *
@@ -59,7 +59,7 @@ class MetadataTemplate
         foreach ($segments as [$text, $placeholders]) {
             $isShown = $placeholders === null || array_all(
                 $placeholders,
-                static fn(string $placeholder) => (string)($parts[$placeholder] ?? '') !== ''
+                static fn(string $placeholder) => trim((string)($parts[$placeholder] ?? '')) !== ''
             );
             $html .= $isShown ? $text : "\x01";
         }
@@ -91,8 +91,12 @@ class MetadataTemplate
         $flushGroup = static function (bool $isBlock) use (&$segments, &$group): void {
             $text = implode('', $group);
             $placeholders = null;
-            if ($isBlock && preg_match_all(self::STRICT_PLACEHOLDER, $text, $m)) {
-                $placeholders = array_values(array_unique($m[0]));
+            if ($isBlock) {
+                // Усе, що стара регулярка стерла б як змінну ({$a b} теж), рахується змінною.
+                preg_match_all(self::STRICT_PLACEHOLDER, $text, $strict);
+                preg_match_all(self::PLACEHOLDER, preg_replace(self::STRICT_PLACEHOLDER, '', $text) ?? '', $loose);
+                $found = array_values(array_unique([...$strict[0], ...$loose[0]]));
+                $placeholders = $found === [] ? null : $found;
             }
             $segments[] = [$text, $placeholders];
             $group = [];
@@ -133,44 +137,39 @@ class MetadataTemplate
     }
 
     /**
-     * Блок, що стояв сам на рядку, забирає рядок, і порожніх рядків довкола лишається
-     * не більше, ніж було з того боку, де їх більше; між словами лишає пробіл, щоб їх не
-     * склеїти; між тегами не лишає нічого.
+     * Прибраний блок не лишає на своєму місці нічого. Рядок, що після цього став порожнім,
+     * зникає разом із переносом, і порожніх рядків довкола лишається не більше, ніж було з
+     * того боку, де їх більше.
      */
-    private function dropRemovedBlocks(string $html): ?string
+    private function dropRemovedBlocks(string $html): string
     {
-        $isText = static fn(string $c): bool => !in_array($c, ['', '<', '>', ' ', "\t", "\r", "\n"], true);
-
-        return preg_replace_callback(
-            self::REMOVED,
-            static function (array $m) use ($html, $isText): string {
-                [$whole, $start] = $m[0];
-                $prev = $start > 0 ? $html[$start - 1] : '';
-                $next = $html[$start + strlen($whole)] ?? '';
-                $lineBreak = $m[3][1] >= 0 ? $m[3][0] : '';
-                $blankAfter = $m[4][1] >= 0 ? $m[4][0] : '';
-
-                if (in_array($prev, ['', "\n"], true) && ($lineBreak !== '' || in_array($next, ['', "\r", "\n"], true))) {
-                    $blankBefore = 0;
-                    for ($i = $start - 1; $i > 0; $i = $j) {
-                        for ($j = $i - 1; $j >= 0 && in_array($html[$j], [' ', "\t", "\r"], true); $j--);
-                        if ($j < 0 || $html[$j] !== "\n") {
-                            break;
-                        }
-                        $blankBefore++;
-                    }
-                    preg_match_all('~[ \t]*\r?\n~', $blankAfter, $after);
-
-                    return implode('', array_slice($after[0], 0, max(0, count($after[0]) - $blankBefore)));
+        $out = [];
+        $blankToSkip = 0;
+        foreach (explode("\n", $html) as $line) {
+            if (!str_contains($line, "\x01")) {
+                $isBlank = trim($line, " \t\r") === '';
+                if ($isBlank && $blankToSkip > 0) {
+                    $blankToSkip--;
+                    continue;
                 }
+                $blankToSkip = 0;
+                $out[] = $line;
+                continue;
+            }
 
-                $hadSpace = $m[1][0] !== '' || rtrim($m[2][0], " \t") !== $m[2][0];
-                $gap = $lineBreak === '' && ($hadSpace || ($isText($prev) && $isText($next))) ? ' ' : '';
+            $kept = str_replace("\x01", '', $line);
+            if (trim($kept, " \t\r") !== '') {
+                $out[] = $kept;
+                $blankToSkip = 0;
+                continue;
+            }
 
-                return $gap . $lineBreak . $blankAfter;
-            },
-            $html,
-            flags: PREG_OFFSET_CAPTURE
-        );
+            for ($blankBefore = 0, $i = count($out) - 1; $i >= 0 && trim($out[$i], " \t\r") === ''; $i--) {
+                $blankBefore++;
+            }
+            $blankToSkip = max($blankToSkip, $blankBefore);
+        }
+
+        return implode("\n", $out);
     }
 }

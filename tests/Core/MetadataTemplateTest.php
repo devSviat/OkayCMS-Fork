@@ -2,7 +2,10 @@
 
 namespace Core;
 
+use Okay\Core\EntityFactory;
+use Okay\Core\Languages;
 use Okay\Core\MetadataTemplate;
+use Okay\Core\Settings;
 use Okay\Helpers\MetadataHelpers\CommonMetadataHelper;
 use Okay\Helpers\XmlFeedHelper;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -66,7 +69,20 @@ class MetadataTemplateTest extends TestCase
                 [],
                 "<p>a</p>\n\n<p>b</p>",
             ],
-            'між словами — пробіл' => ['Купити{$if} {$brand}{$endif}онлайн', [], 'Купити онлайн'],
+            'пробіл автор ставить у блок' => ['Купити {$if}{$brand} {$endif}онлайн', [], 'Купити онлайн'],
+            'нічого не вставляється: кома' => ['Купити {$product}{$if}, {$brand}{$endif}. Ціна', ['{$product}' => 'A'], 'Купити A. Ціна'],
+            'нічого не вставляється: дефіс' => ['{$sku}{$if}-{$size-value}{$endif}, купити', ['{$sku}' => 'S1'], 'S1, купити'],
+            'нічого не вставляється: дужки' => ['{$product} ({$if}{$brand}{$endif})', ['{$product}' => 'A'], 'A ()'],
+            'нічого не вставляється: сусідні змінні' => ['{$a}{$if}{$b}{$endif}{$c}', ['{$a}' => 'A', '{$c}' => 'C'], 'AC'],
+            'у значенні атрибута' => ['<img alt="{$if}{$brand}{$endif}" src="x.png">', [], '<img alt="" src="x.png">'],
+            'відступ рядка зникає з рядком' => ["<ul>\n  {\$if}<li>{\$x}</li>{\$endif}\n  <li>y</li>\n</ul>", [], "<ul>\n  <li>y</li>\n</ul>"],
+            'пробіли значення — порожньо' => ['{$if}<p>{$c}</p>{$endif}<p>b</p>', ['{$c}' => "  \t"], '<p>b</p>'],
+            "'0' — не порожньо" => ['{$if}<p>{$c}</p>{$endif}', ['{$c}' => '0'], '<p>0</p>'],
+            'змінна з пробілом' => ['{$if}<p>{$a b}</p>{$endif}x', [], 'x'],
+            'маркери з пробілом чи великими — не маркери' => ['{$IF}<p>{$c}</p>{$ endif}<p>z</p>', [], '<p></p><p>z</p>'],
+            'маркер у значенні змінної' => ['{$if}<p>{$a}</p>{$endif}<p>{$b}</p>', ['{$a}' => 'X{$endif}Y{$if}Z', '{$b}' => 'B'], '<p>XYZ</p><p>B</p>'],
+            'маркер у значенні не закриває блок' => ['{$if}<p>{$a} {$c}</p>{$endif}<p>{$b}</p>', ['{$a}' => 'X{$endif}', '{$b}' => 'B'], '<p>B</p>'],
+            'назва {$if} перед порожнім блоком' => ['<h1>{$product}</h1>{$if}<p>{$c}</p>{$endif}', ['{$product}' => '{$if}'], '<h1></h1>'],
             'у мета-тексті' => ['{$product}{$if}, колір {$color-value}{$endif} — купити', ['{$product}' => 'A'], 'A — купити'],
             'незакритий {$if}' => ['<p>a {$if}<b>Розмір:</b> {$size-value}</p>', [], '<p>a <b>Розмір:</b> </p>'],
             'зайвий {$endif}' => ['<p>a</p>{$endif}<p>{$size-value}</p>', [], '<p>a</p><p></p>'],
@@ -102,11 +118,30 @@ class MetadataTemplateTest extends TestCase
             // Стара жадібна регулярка з'їдає `{$a}</p><p>b}` — так було й лишається.
             'жадібна стара регулярка'   => ['<p>{$a}</p><p>b}</p>'],
         ];
-        foreach (json_decode(file_get_contents(__DIR__ . '/fixtures/stock-template-strings.json'), true) as $i => $template) {
+        foreach (self::stockDumpTemplates() as $i => $template) {
             $cases['дамп стоку #' . $i] = [$template];
         }
 
         return $cases;
+    }
+
+    /** Рядки зі змінними з чистого дампу OkayCMS, що лежить у репозиторії. */
+    private static function stockDumpTemplates(): array
+    {
+        $templates = [];
+        foreach (file(__DIR__ . '/../../1DB_changes/okay_clean.sql') as $line) {
+            if (!str_contains($line, '{$')) {
+                continue;
+            }
+            preg_match_all("~'((?:[^'\\\\]|\\\\.)*)'~s", $line, $m);
+            foreach ($m[1] as $value) {
+                if (str_contains($value, '{$')) {
+                    $templates[] = stripcslashes($value);
+                }
+            }
+        }
+
+        return array_values(array_unique($templates));
     }
 
     #[DataProvider('withoutMarkers')]
@@ -154,5 +189,58 @@ class MetadataTemplateTest extends TestCase
         $helper->attachDescriptionByTemplate($product, ['{$a}' => 'A'], "<p>{\$a}</p>\n{\$if}<p><b>Розмір:</b> {\$b}</p>{\$endif}", 'description');
 
         $this->assertSame('<p>A</p>', $product->description);
+    }
+
+    /** Модулі створюють хелпер через new з трьома аргументами; служба береться з ServiceLocator. */
+    public function testXmlFeedHelperBuiltWithThreeArgumentsUsesBlocks(): void
+    {
+        // mappedBy() у Entity фінальний, тож замість заглушок сутностей — прості об'єкти.
+        $entities = new class {
+            public function find(): array
+            {
+                return [];
+            }
+
+            public function getMainCurrency(): null
+            {
+                return null;
+            }
+
+            public function mappedBy(string $column): static
+            {
+                return $this;
+            }
+        };
+        $entityFactory = $this->createStub(EntityFactory::class);
+        $entityFactory->method('get')->willReturn($entities);
+
+        $helper = new XmlFeedHelper($this->createStub(Languages::class), $this->createStub(Settings::class), $entityFactory);
+        $product = (object)['description' => ''];
+        $helper->attachDescriptionByTemplate($product, ['{$a}' => 'A'], "<p>{\$a}</p>\n{\$if}<p>{\$b}</p>{\$endif}", 'description');
+
+        $this->assertSame('<p>A</p>', $product->description);
+    }
+
+    /** Підкласи метаданих у модулях кличуть parent::__construct() без аргументів. */
+    public function testMetadataSubclassWithoutArgumentsUsesBlocks(): void
+    {
+        try {
+            $helper = new class extends CommonMetadataHelper {
+                public function __construct()
+                {
+                    parent::__construct();
+                    $this->parts = ['{$a}' => 'A'];
+                }
+
+                public function compile(string $pattern): string
+                {
+                    return $this->compileMetadata($pattern);
+                }
+            };
+        } catch (\PDOException $e) {
+            $this->markTestSkipped('конструктор хелпера читає налаштування з бази: ' . $e->getMessage());
+        }
+
+        $this->assertSame('<p>A</p>', $helper->compile("<p>{\$a}</p>\n{\$if}<p>{\$b}</p>{\$endif}"));
     }
 }
