@@ -623,6 +623,9 @@ return [
     ],
     CommonMetadataHelper::class => [
         'class' => CommonMetadataHelper::class,
+        'arguments' => [
+            new SR(MetadataTemplate::class),
+        ],
     ],
     CartMetadataHelper::class => [
         'class' => CartMetadataHelper::class,
@@ -657,6 +660,7 @@ return [
             new SR(Languages::class),
             new SR(Settings::class),
             new SR(EntityFactory::class),
+            new SR(MetadataTemplate::class),
         ]
     ],
     NotifyHelper::class => [

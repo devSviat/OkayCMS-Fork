@@ -283,6 +283,10 @@
                         </i>
                     </div>
                     <input name="auto_value_id" class="form-control mb-t" type="text" value="{$feature->auto_value_id|escape}"/>
+                    {if $feature->auto_name_id && $feature->auto_value_id}
+                        {capture assign=ifSnippet}{literal}{$if}<p><b>{${/literal}{$feature->auto_name_id}{literal}}</b> {${/literal}{$feature->auto_value_id}{literal}}</p>{$endif}{/literal}{/capture}
+                        <div class="mt-h mb-1 text_grey">{$btr->seo_patterns_ajax_if_feature|escape}: <a href="" class="text_primary fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard" data-copy-string="{$ifSnippet|escape}">{$ifSnippet|escape}</a></div>
+                    {/if}
 
                     <div class="heading_label" >{$btr->feature_description|escape}</div>
                     <textarea class="form-control okay_textarea" name="description">{$feature->description|escape}</textarea>

@@ -6,6 +6,7 @@ namespace Okay\Helpers;
 
 use Okay\Core\EntityFactory;
 use Okay\Core\Languages;
+use Okay\Core\MetadataTemplate;
 use Okay\Core\QueryFactory\Select;
 use Okay\Core\ServiceLocator;
 use Okay\Core\Settings;
@@ -36,11 +37,18 @@ class XmlFeedHelper
     private $mainCurrency;
     private $allCurrencies;
     
+    private MetadataTemplate $metadataTemplate;
+
+    /**
+     * $metadataTemplate необов'язковий: модулі створюють хелпер через new з трьома аргументами.
+     */
     public function __construct(
         Languages $languages,
         Settings $settings,
-        EntityFactory $entityFactory
+        EntityFactory $entityFactory,
+        ?MetadataTemplate $metadataTemplate = null
     ) {
+        $this->metadataTemplate = $metadataTemplate ?? ServiceLocator::getInstance()->getService(MetadataTemplate::class);
         $this->languages = $languages;
         $this->siteName = $settings->get('site_name');
         $this->defaultProductsSeoPattern = (object)$settings->get('default_products_seo_pattern');
@@ -281,8 +289,7 @@ class XmlFeedHelper
             && isset($product->{$descriptionFieldName})
             && empty($product->{$descriptionFieldName})
         ) {
-            $metaData = strtr($descriptionTemplate, $metaParts);
-            $product->{$descriptionFieldName} = trim(preg_replace('/{\$[^$]*}/', '', $metaData));
+            $product->{$descriptionFieldName} = $this->metadataTemplate->compile($descriptionTemplate, $metaParts);
         }
 
         return $product; // No ExtenderFacade

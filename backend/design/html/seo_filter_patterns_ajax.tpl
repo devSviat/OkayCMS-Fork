@@ -34,6 +34,8 @@
                             <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard">{$product_min_price}</a> - {/literal}{$btr->seo_patterns_ajax_product_min_price|escape}</li>{literal}
                             <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard">{$product_max_price}</a> - {/literal}{$btr->seo_patterns_ajax_product_max_price|escape}</li>{literal}
                             <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard">{$products_count}</a> - {/literal}{$btr->seo_patterns_ajax_products_count|escape}</li>{literal}
+                            <li><a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile" data-hint="Click to copy" data-hint-copied="✔ Copied to clipboard" data-copy-string="{$if}{$endif}">{$if}…{$endif}</a> - {/literal}{$btr->seo_patterns_ajax_if_block|escape}{literal}</li>
+                            <li>{/literal}{$btr->seo_patterns_ajax_if_example|escape}{literal}</li>
                         {/literal}
 
                         {if $features_aliases}
