@@ -298,6 +298,42 @@
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-lg-12 col-md-12">
+            <div class="boxed fn_toggle_wrap ">
+                <div class="heading_box">
+                    {$btr->settings_brand_feature_landings|escape}
+                    <div class="toggle_arrow_wrap fn_toggle_card text-primary">
+                        <a class="btn-minimize" href="javascript:;" ><span class="fn_icon_arrow">{include file='svg_icon.tpl' svgId='chevron_down'}</span></a>
+                    </div>
+                </div>
+                <div class="toggle_body_wrap on fn_card">
+                    <div class="mb-1">{$btr->settings_brand_feature_landings_hint|escape}</div>
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6">
+                            <div class="heading_label">{$btr->settings_brand_feature_landings_min_products|escape}</div>
+                            <div class="mb-1">
+                                <input name="brand_feature_landings_min_products" class="form-control" type="text" value="{if $settings->brand_feature_landings_min_products > 0}{$settings->brand_feature_landings_min_products|escape}{/if}" placeholder="{$brand_feature_landings_defaults.min_products|escape}" />
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6">
+                            <div class="heading_label">{$btr->settings_brand_feature_landings_max_share|escape}</div>
+                            <div class="mb-1">
+                                <input name="brand_feature_landings_max_share" class="form-control" type="text" value="{if $settings->brand_feature_landings_max_share > 0}{$settings->brand_feature_landings_max_share|escape}{/if}" placeholder="{$brand_feature_landings_defaults.max_share|escape}" />
+                            </div>
+                        </div>
+                        <div class="col-lg-12 col-md-12">
+                            <button type="submit" class="btn btn_small btn_blue float-md-right">
+                                {include file='svg_icon.tpl' svgId='checked'}
+                                <span>{$btr->general_apply|escape}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </form>
 
 {$block = {get_design_block block="settings_custom_block"}}

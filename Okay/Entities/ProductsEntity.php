@@ -287,6 +287,68 @@ class ProductsEntity extends Entity implements RelatedProductsInterface
         return ExtenderFacade::execute([static::class, __FUNCTION__], $this->getResult(), func_get_args());
     }
 
+    /**
+     * Кількість товарів за брендом одним запитом, з тими самими умовами $filter, що й count().
+     * Бренд мусить бути видимим: прихований віддає 404 на /catalog/x/brand-y.
+     *
+     * @param int[] $featuresIds додатково групує за translit значень цих властивостей у поточній мові —
+     *                          як filter__features лістингу: значення з однаковим translit дають одну
+     *                          сторінку; value_id — найменший id серед них
+     * @param bool $perCategory групує за pc.category_id; потрібен фільтр category_id. Товар
+     *                          у кількох категоріях рахується в кожній, тож суму листів не можна
+     *                          брати за кількість у батьківській категорії
+     * @return object[] brand_id, [category_id,] [feature_id, translit, value_id,] count
+     */
+    public function countGroupedByBrand(array $filter, array $featuresIds = [], bool $perCategory = false): array
+    {
+        if ($perCategory && empty($filter['category_id'])) {
+            return ExtenderFacade::execute([static::class, __FUNCTION__], [], func_get_args());
+        }
+
+        $this->setUp();
+        $this->buildFilter($filter);
+        $this->select->resetGroupBy();
+        $this->select->resetOrderBy();
+
+        $this->select->join('INNER', BrandsEntity::getTable() . ' AS cgb', 'cgb.id = p.brand_id AND cgb.visible = 1');
+        $group = ['p.brand_id'];
+        if ($perCategory) {
+            $group[] = 'pc.category_id';
+        }
+        if (!empty($featuresIds)) {
+            $this->select->join('INNER', '__products_features_values AS cgpf', 'cgpf.product_id = p.id')
+                ->join(
+                    'INNER',
+                    FeaturesValuesEntity::getTable() . ' AS cgfv',
+                    'cgfv.id = cgpf.value_id AND cgfv.feature_id IN (:count_grouped_features_ids)'
+                )
+                ->bindValue('count_grouped_features_ids', array_map(intval(...), $featuresIds));
+
+            $translit = 'cgfv.translit';
+            if (!empty($this->lang->getLangId())) {
+                $this->select->join(
+                    'INNER',
+                    '__lang_features_values AS cglfv',
+                    'cglfv.feature_value_id = cgpf.value_id AND cglfv.lang_id = :count_grouped_lang_id'
+                )->bindValue('count_grouped_lang_id', (int)$this->lang->getLangId());
+                $translit = 'cglfv.translit';
+            }
+            $group[] = 'cgfv.feature_id';
+            $group[] = $translit;
+        }
+
+        $cols = $group;
+        if (!empty($featuresIds)) {
+            $cols[array_key_last($cols)] = $translit . ' AS translit';
+            $cols[] = 'MIN(cgpf.value_id) AS value_id';
+        }
+        $this->select->cols(array_merge($cols, ['COUNT(DISTINCT p.id) AS count']))->groupBy($group);
+
+        $this->db->query($this->customChangeSelect($this->select));
+
+        return ExtenderFacade::execute([static::class, __FUNCTION__], $this->getResults(), func_get_args());
+    }
+
     public function getRelatedProducts(array $filter = [])
     {
         if (empty($filter['product_id'])) {

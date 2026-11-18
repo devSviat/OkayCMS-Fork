@@ -9,6 +9,7 @@ use libphonenumber\PhoneNumberUtil;
 use Okay\Admin\Helpers\BackendSettingsHelper;
 use Okay\Core\BackendTranslations;
 use Okay\Core\Phone;
+use Okay\Helpers\BrandFeatureLandingsHelper;
 
 class SettingsIndexingAdmin extends IndexAdmin
 {
@@ -87,15 +88,30 @@ class SettingsIndexingAdmin extends IndexAdmin
             $this->settings->set('max_features_filter_depth', $this->request->post('max_features_filter_depth', 'integer', 0));
             $this->settings->set('max_features_values_filter_depth', $this->request->post('max_features_values_filter_depth', 'integer', 0));
             $this->settings->set('max_filter_depth', $this->request->post('max_filter_depth', 'integer', 0));
+
+            foreach (array_keys(BrandFeatureLandingsHelper::SETTINGS_MAX) as $setting) {
+                $this->settings->set($setting, self::brandFeatureLandingsSetting($setting, $this->request->post($setting, 'integer')));
+            }
             
             $this->design->assign('message_success', 'saved');
         }
         
+        $this->design->assign('brand_feature_landings_defaults', [
+            'min_products' => BrandFeatureLandingsHelper::DEFAULT_MIN_PRODUCTS,
+            'max_share' => BrandFeatureLandingsHelper::DEFAULT_MAX_SHARE,
+        ]);
+
         $this->response->setContent('settings_indexing.tpl');
     }
 
     private static function allowedOrInherit(int $value, array $allowed): int
     {
         return in_array($value, $allowed, true) ? $value : 0;
+    }
+
+    /** 0 — типове значення BrandFeatureLandingsHelper. */
+    private static function brandFeatureLandingsSetting(string $setting, int $value): int
+    {
+        return $value >= 1 && $value <= BrandFeatureLandingsHelper::SETTINGS_MAX[$setting] ? $value : 0;
     }
 }

@@ -1393,3 +1393,20 @@ $(function () {
     document.documentElement.style.setProperty("--vh", `${vh}px`);
   });
 });
+
+/* «Дивіться також»: на мобільному посилання понад 12 ховаються за кнопкою «Показати ще».
+   Без js усі посилання видно; ховає їх лише атрибут, який ставить цей код. */
+document.querySelectorAll('[data-landings-more]').forEach(function (button) {
+  var block = button.closest('[data-landings]');
+  block.setAttribute('data-landings-collapsed', '');
+  button.hidden = false;
+  button.addEventListener('click', function () {
+    block.removeAttribute('data-landings-collapsed');
+    button.setAttribute('aria-expanded', 'true');
+    button.hidden = true;
+    var firstExtra = block.querySelector('[data-landings-extra] a');
+    if (firstExtra) {
+      firstExtra.focus();
+    }
+  });
+});

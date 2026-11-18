@@ -96,6 +96,10 @@
                 </div>
             {/if}
 
+            {if !empty($brand_feature_landings)}
+                {include file='brand_feature_landings.tpl'}
+            {/if}
+
             {if $description}
                 <div class="boxed boxed--big">
                     {* Table contents *}
