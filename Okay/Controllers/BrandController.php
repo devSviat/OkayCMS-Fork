@@ -7,6 +7,7 @@ use Okay\Core\Routes\RouteFactory;
 use Okay\Entities\BrandsEntity;
 use Okay\Entities\ProductsEntity;
 use Okay\Entities\CategoriesEntity;
+use Okay\Helpers\BrandFeatureLandingsHelper;
 use Okay\Helpers\BrandsHelper;
 use Okay\Helpers\CanonicalHelper;
 use Okay\Helpers\CatalogHelper;
@@ -29,6 +30,7 @@ class BrandController extends AbstractController
         MetaRobotsHelper    $metaRobotsHelper,
         BrandsHelper        $brandsHelper,
         RouteFactory        $routeFactory,
+        BrandFeatureLandingsHelper $brandFeatureLandingsHelper,
                             $url,
                             $filtersUrl = ''
     ) {
@@ -184,6 +186,10 @@ class BrandController extends AbstractController
 
         );
         $this->setMetadataHelper($brandMetadataHelper);
+
+        if ($brandFeatureLandingsLinks = $brandFeatureLandingsHelper->getBrandLinks($brand, $catalogFeatures, $productsFilter)) {
+            $this->design->assign('brand_feature_landings', $brandFeatureLandingsLinks);
+        }
         
         $this->response->setContent('products.tpl');
     }

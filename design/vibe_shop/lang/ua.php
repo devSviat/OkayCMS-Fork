@@ -307,6 +307,7 @@ $lang['blog_time_to_read'] = 'читати';
 $lang['blog_date_public'] = 'Дата публікації статті';
 $lang['blog_update_date'] = 'Ця стаття була оновлена';
 $lang['blog_table_contents'] = 'Зміст';
+$lang['brand_feature_landings_title'] = 'Дивіться також';
 $lang['blog_author_all_posts'] = 'Всі статті автора';
 $lang['selected_features_heading'] = 'Ви вибрали:';
 $lang['selected_features_reset'] = 'Очистити всі';

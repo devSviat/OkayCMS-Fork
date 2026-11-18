@@ -128,6 +128,10 @@
                 </div>
             {/if}
 
+            {if !empty($brand_feature_landings)}
+                {include file='brand_feature_landings.tpl'}
+            {/if}
+
             {* На пошуку $description збирається з того самого «general_search +
                keyword», що й заголовок h1, тож дублював його. *}
             {if $description && !$keyword}

@@ -298,6 +298,7 @@ $lang['blog_time_to_read'] = 'read';
 $lang['blog_date_public'] = 'Аrticle date publication';
 $lang['blog_update_date'] = 'This article has been updated';
 $lang['blog_table_contents'] = 'Table of contents';
+$lang['brand_feature_landings_title'] = 'See also';
 $lang['blog_author_all_posts'] = 'All articles of author';
 $lang['selected_features_heading'] = 'You choosed:';
 $lang['selected_features_reset'] = 'Clear all';

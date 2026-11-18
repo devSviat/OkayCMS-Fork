@@ -4,6 +4,7 @@ namespace Seo;
 
 use Okay\Core\EntityFactory;
 use Okay\Core\Response;
+use Okay\Helpers\BrandFeatureLandingsHelper;
 use Okay\Helpers\CanonicalHelper;
 use Okay\Helpers\FilterHelper;
 use Okay\Helpers\MainHelper;
@@ -134,7 +135,8 @@ class SitemapBrandFiltersFollowSettingsTest extends TestCase
             $this->createStub(Settings::class),
             $filterHelper,
             $metaRobotsHelper,
-            $canonicalHelper
+            $canonicalHelper,
+            $this->createStub(BrandFeatureLandingsHelper::class)
         );
     }
 

@@ -298,6 +298,7 @@ $lang['blog_time_to_read'] = 'читать';
 $lang['blog_date_public'] = 'Дата публикации статьи';
 $lang['blog_update_date'] = 'Эта статья была обновлена';
 $lang['blog_table_contents'] = 'Оглавление';
+$lang['brand_feature_landings_title'] = 'Смотрите также';
 $lang['blog_author_all_posts'] = 'Все статьи автора';
 $lang['selected_features_heading'] = 'Вы выбрали:';
 $lang['selected_features_reset'] = 'Очистить все';

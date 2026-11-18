@@ -20,6 +20,7 @@ class FeaturesEntity extends Entity
         'url',
         'url_in_product',
         'to_index_new_value',
+        'index_with_brand',
         'external_id',
         'visible',
         'show_in_product',

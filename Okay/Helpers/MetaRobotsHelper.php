@@ -185,6 +185,20 @@ class MetaRobotsHelper
     }
 
     /**
+     * Robots посадкової «бренд + значення властивості» (BrandFeatureLandingsHelper::isLanding()).
+     * Перша сторінка індексується; пагінація — за robots_catalog_filter_pagination, як у фільтрів.
+     * Глибина фільтра й to_index значень тут не діють: їх замінює позначка властивості.
+     *
+     * @param string|int $page поточна сторінка, може бути all
+     */
+    public function getBrandFeatureLandingRobots($page): int
+    {
+        $robots = empty($this->normalizePageAll($page)) ? ROBOTS_INDEX_FOLLOW : $this->catalogFilterPagination;
+
+        return ExtenderFacade::execute(__METHOD__, $robots, func_get_args());
+    }
+
+    /**
      * @throws Exception
      */
     private function catalogRobots($page, array $otherFilter, array $featuresFilter, array $brandsFilter, ?int $brandRobots) : int

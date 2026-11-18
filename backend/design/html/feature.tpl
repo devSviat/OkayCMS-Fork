@@ -144,6 +144,23 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="heading_label__switch heading_label__switch--not_label">
+                                        <div class="heading_label boxes_inline">
+                                            {$btr->feature_index_with_brand|escape}
+                                            <i class="fn_tooltips fn_tip_wide hint-bottom-right-t-white-s-small-mobile hint-anim" data-hint="{$btr->tooltip_feature_index_with_brand|escape}" tabindex="0" role="img" aria-label="{$btr->tooltip_feature_index_with_brand|escape}">
+                                                {include file='svg_icon.tpl' svgId='icon_tooltips'}
+                                            </i>
+                                        </div>
+                                        <div class="boxes_inline">
+                                            <div class="okay_switch clearfix">
+                                                <label class="switch switch-default">
+                                                    <input class="switch-input" name="index_with_brand" value='1' type="checkbox" {if $feature->index_with_brand}checked=""{/if}/>
+                                                    <span class="switch-label"></span>
+                                                    <span class="switch-handle"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

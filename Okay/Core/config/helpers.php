@@ -45,6 +45,7 @@ use Okay\Core\SmartyPlugins\Plugins\CheckoutPaymentForm;
 use Okay\Core\TemplateConfig\FrontTemplateConfig;
 use Okay\Helpers\AuthorsHelper;
 use Okay\Helpers\BlogHelper;
+use Okay\Helpers\BrandFeatureLandingsHelper;
 use Okay\Helpers\BrandsHelper;
 use Okay\Helpers\CanonicalHelper;
 use Okay\Helpers\CartHelper;
@@ -609,6 +610,14 @@ return [
             new SR(FilterHelper::class),
             new SR(MetaRobotsHelper::class),
             new SR(CanonicalHelper::class),
+            new SR(BrandFeatureLandingsHelper::class),
+        ]
+    ],
+    BrandFeatureLandingsHelper::class => [
+        'class' => BrandFeatureLandingsHelper::class,
+        'arguments' => [
+            new SR(EntityFactory::class),
+            new SR(Settings::class),
         ]
     ],
     ComparisonHelper::class => [

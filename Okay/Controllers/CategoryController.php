@@ -6,6 +6,7 @@ use Okay\Core\Router;
 use Okay\Core\Routes\RouteFactory;
 use Okay\Entities\ProductsEntity;
 use Okay\Entities\CategoriesEntity;
+use Okay\Helpers\BrandFeatureLandingsHelper;
 use Okay\Helpers\CanonicalHelper;
 use Okay\Helpers\CatalogHelper;
 use Okay\Helpers\CategoriesHelper;
@@ -27,6 +28,7 @@ class CategoryController extends AbstractController
         MetaRobotsHelper       $metaRobotsHelper,
         RouteFactory           $routeFactory,
         CategoriesHelper       $categoriesHelper,
+        BrandFeatureLandingsHelper $brandFeatureLandingsHelper,
                                $url,
                                $filtersUrl = ''
     ) {
@@ -144,10 +146,15 @@ class CategoryController extends AbstractController
         $this->response->setHeaderLastModify(max($lastModify));
         //lastModify END
 
+        $landingRobots = null;
         if (isset($productsFilter['keyword'])) {
             $this->design->assign('noindex_nofollow', true);
         } else {
-            switch ($metaRobotsHelper->getCatalogRobots(
+            if ($brandFeatureLandingsHelper->isLanding($category, $catalogFeatures, $productsFilter)) {
+                $landingRobots = $metaRobotsHelper->getBrandFeatureLandingRobots($currentPage);
+            }
+
+            switch ($landingRobots ?? $metaRobotsHelper->getCatalogRobots(
                 $currentPage,
                 $productsFilter['other_filter'] ?? [],
                 $metaArray['features_values'] ?? [],
@@ -171,12 +178,20 @@ class CategoryController extends AbstractController
             $canonicalFeaturesValues = [];
         }
 
-        $canonicalData = $canonicalHelper->getCatalogCanonicalData(
-            $currentPage,
-            $productsFilter['other_filter'] ?? [],
-            $canonicalFeaturesValues,
-            $productsFilter['brand_id'] ?? []
-        );
+        if ($landingRobots !== null) {
+            $canonicalData = $canonicalHelper->getBrandFeatureLandingCanonicalData(
+                $currentPage,
+                $canonicalFeaturesValues,
+                $productsFilter['brand_id']
+            );
+        } else {
+            $canonicalData = $canonicalHelper->getCatalogCanonicalData(
+                $currentPage,
+                $productsFilter['other_filter'] ?? [],
+                $canonicalFeaturesValues,
+                $productsFilter['brand_id'] ?? []
+            );
+        }
 
         if ($canonicalData) {
             $canonical = Router::generateUrl('category', ['url' => $category->url], true);
@@ -195,9 +210,15 @@ class CategoryController extends AbstractController
             $this->design->getVar('current_page_num'),
             $productsFilter['features'] ?? [],
             $metaArray,
-            $productsFilter['keyword'] ?? null
+            $productsFilter['keyword'] ?? null,
+            $landingRobots
         );
         $this->setMetadataHelper($categoryMetadataHelper);
+
+        // Тема без блоку посилань змінну не читає; без позначених властивостей її немає зовсім.
+        if ($brandFeatureLandingsLinks = $brandFeatureLandingsHelper->getCategoryLinks($category, $catalogFeatures, $productsFilter)) {
+            $this->design->assign('brand_feature_landings', $brandFeatureLandingsLinks);
+        }
 
         $this->response->setContent('products.tpl');
     }
