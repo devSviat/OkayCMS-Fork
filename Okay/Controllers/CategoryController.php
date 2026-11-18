@@ -80,11 +80,7 @@ class CategoryController extends AbstractController
         $this->design->assign('category', $category);
         $this->design->assign('sort', $productsSort);
 
-        $catalogBrands = $filterHelper->getBrands([
-            'category_id' => $category->children,
-            'visible' => 1,
-            'product_visible' => 1,
-        ]);
+        $catalogBrands = $filterHelper->getBrands($filterHelper->getCategoryBrandsFilter($category->children));
          
         $metaArray = $filterHelper->getMetaArray($filtersUrl);
 

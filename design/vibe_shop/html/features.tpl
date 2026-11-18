@@ -32,6 +32,9 @@
                                             class="vs-filter-cats__link{if $category->id == $c->id} is-current{/if}"
                                             {if $route_name === 'products'}
                                                 href="{url_generator route="category" url=$c->url filtersUrl=['brand' => $brand->url] keyword=$keyword}"
+                                            {elseif isset($catalog_categories_without_brand_filter[$c->id])}
+                                                {* Фільтр за брендом тут віддав би 404 *}
+                                                href="{url_generator route="category" url=$c->url}"
                                             {else}
                                                 href="{url_generator route="category" url=$c->url filtersUrl=['brand' => $brand->url]}"
                                             {/if}

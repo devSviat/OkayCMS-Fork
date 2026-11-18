@@ -23,6 +23,9 @@ class CanonicalHelper
     private $maxFeaturesFilterDepth;
     private $maxFeaturesValuesFilterDepth;
     private $maxFilterDepth;
+
+    /** 0 — як для категорії з брендом */
+    private $allProductsBrand;
     
     public function __construct(Settings $settings)
     {
@@ -45,7 +48,8 @@ class CanonicalHelper
         $maxOtherFilterDepth,
         $maxFeaturesFilterDepth,
         $maxFeaturesValuesFilterDepth,
-        $maxFilterDepth
+        $maxFilterDepth,
+        $allProductsBrand = null
     ) {
         $this->catalogPagination = (int)$catalogPagination;
         $this->catalogPageAll = (int)$catalogPageAll;
@@ -59,6 +63,8 @@ class CanonicalHelper
         $this->maxFeaturesFilterDepth = (int)$maxFeaturesFilterDepth;
         $this->maxFeaturesValuesFilterDepth = (int)$maxFeaturesValuesFilterDepth;
         $this->maxFilterDepth = (int)$maxFilterDepth;
+
+        $this->allProductsBrand = (int)$allProductsBrand;
     }
     
     /**
@@ -88,6 +94,65 @@ class CanonicalHelper
      */
     public function getCatalogCanonicalData($page, array $otherFilter, array $featuresFilter, array $brandsFilter)
     {
+        return $this->canonicalData($page, $otherFilter, $featuresFilter, $brandsFilter, $this->catalogBrand); // no ExtenderFacade
+    }
+
+    /**
+     * Canonical сторінки всіх товарів на її ж маршруті: як getCatalogCanonicalData(),
+     * але фільтр за брендом підпорядковується canonical_all_products_brand. Незадане
+     * значення і CANONICAL_BRAND_PAGE беруть правило canonical_category_brand: адреси,
+     * які зводяться до сторінки бренду, віддає getAllProductsBrandPageCanonicalData().
+     *
+     * @param string|int $page поточна сторінка, може бути all
+     * @return array|false
+     */
+    public function getAllProductsCanonicalData($page, array $otherFilter, array $featuresFilter, array $brandsFilter)
+    {
+        $brandCanonical = $this->allProductsBrand;
+        if ($brandCanonical === 0 || $brandCanonical === CANONICAL_BRAND_PAGE) {
+            $brandCanonical = $this->catalogBrand;
+        }
+
+        $result = $this->canonicalData($page, $otherFilter, $featuresFilter, $brandsFilter, $brandCanonical);
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
+    }
+
+    /**
+     * Дані для filterChpuUrl() на маршруті brand, коли canonical_all_products_brand
+     * дорівнює CANONICAL_BRAND_PAGE, а адреса /all-products — це один бренд без інших
+     * фільтрів (ціна переноситься, сортування відкидається). Пагінація підпорядковується
+     * тим самим налаштуванням, що й фільтр «на себе»; якщо вони прибирають бренд чи
+     * canonical, повертає null, і діє getAllProductsCanonicalData().
+     *
+     * @param string|int $page поточна сторінка, може бути all
+     * @return array|null null — canonical лишається на /all-products
+     */
+    public function getAllProductsBrandPageCanonicalData($page, array $otherFilter, array $featuresFilter, array $brandsFilter): ?array
+    {
+        $result = null;
+
+        if ($this->allProductsBrand === CANONICAL_BRAND_PAGE
+            && count($brandsFilter) === 1
+            && empty($otherFilter)
+            && empty($featuresFilter)
+        ) {
+            $data = $this->canonicalData($page, [], [], $brandsFilter, CANONICAL_WITH_FILTER);
+            if (is_array($data) && !array_key_exists('brand', $data)) {
+                // Бренд на маршруті brand уже в самій адресі, а не у хвості фільтра.
+                $result = ['brand' => null] + $data;
+            }
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
+    }
+
+    /**
+     * @param string|int $page
+     * @return array|false
+     */
+    private function canonicalData($page, array $otherFilter, array $featuresFilter, array $brandsFilter, ?int $brandCanonical)
+    {
         // Вимкнений page-all віддає звичайну першу сторінку, тож канонікал
         // рахується так, наче її й запитали: інакше кожне налаштування, яке вміє
         // вказати на page-all чи лишити поточну адресу, склеїло б каталог на
@@ -97,7 +162,7 @@ class CanonicalHelper
             $page = '';
         }
 
-        $result = $this->catalogCanonicalData($page, $otherFilter, $featuresFilter, $brandsFilter);
+        $result = $this->catalogCanonicalData($page, $otherFilter, $featuresFilter, $brandsFilter, $brandCanonical);
 
         // Адресу треба ще й явно занулити: без ключа 'page' будівник URL лишає
         // поточний сегмент, і канонікал стає самопосиланням на page-all.
@@ -115,7 +180,7 @@ class CanonicalHelper
      * @param array $brandsFilter
      * @return array|false
      */
-    private function catalogCanonicalData($page, array $otherFilter, array $featuresFilter, array $brandsFilter)
+    private function catalogCanonicalData($page, array $otherFilter, array $featuresFilter, array $brandsFilter, ?int $brandCanonical)
     {
         $result = [];
 
@@ -161,14 +226,14 @@ class CanonicalHelper
             return false; // no ExtenderFacade
         }
 
-        if (($catalogData = $this->getCatalogCanonicalDataExecutor($page, $featuresFilter, $brandsFilter)) === false) {
+        if (($catalogData = $this->getCatalogCanonicalDataExecutor($page, $featuresFilter, $brandsFilter, $brandCanonical)) === false) {
             return false; // no ExtenderFacade
         }
 
         return $catalogData + $baseCatalogData; // no ExtenderFacade
     }
     
-    private function getCatalogCanonicalDataExecutor($page, array $featuresFilter, array $brandsFilter)
+    private function getCatalogCanonicalDataExecutor($page, array $featuresFilter, array $brandsFilter, ?int $brandCanonical = null)
     {
         $result = [];
 
@@ -253,7 +318,7 @@ class CanonicalHelper
         }
 
         if (!empty($brandsFilter)) {
-            switch ($this->catalogBrand) {
+            switch ($brandCanonical ?? $this->catalogBrand) {
                 case CANONICAL_WITHOUT_FILTER:
                     $result['brand'] = null;
                     break;

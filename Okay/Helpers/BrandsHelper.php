@@ -71,6 +71,12 @@ class BrandsHelper implements GetListInterface
             []
         );
 
+        // Ключі — id категорій, для яких тема має дати адресу без фільтра за брендом.
+        $this->design->assign(
+            'catalog_categories_without_brand_filter',
+            array_flip($this->filterHelper->getCategoriesWithoutBrandFilter((int)$brand->id, $catalogCategories))
+        );
+
         ExtenderFacade::execute(__METHOD__, null, func_get_args());
     }
 

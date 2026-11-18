@@ -688,6 +688,7 @@ return [
                     new PR('seo.filter.max_features_filter_depth'),
                     new PR('seo.filter.max_features_values_filter_depth'),
                     new PR('seo.filter.max_filter_depth'),
+                    new PR('seo.canonical.all_products_brand'),
                 ]
             ],
         ]
@@ -712,6 +713,7 @@ return [
                     new PR('seo.filter.max_features_filter_depth'),
                     new PR('seo.filter.max_features_values_filter_depth'),
                     new PR('seo.filter.max_filter_depth'),
+                    new PR('seo.robots.all_products_brand'),
                 ]
             ],
         ]
