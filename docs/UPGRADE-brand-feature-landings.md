@@ -4,6 +4,9 @@
 `index_with_brand` зі значенням 0, і поки жодна властивість не позначена, сайт віддає ті самі
 сторінки, robots, canonical і карту сайту, що й раніше, без жодного додаткового запиту.
 
+Міграція — `ALTER TABLE … ADD COLUMN IF NOT EXISTS`, синтаксис MariaDB, як і `1.3.2_comments_rating`.
+Для ручного апгрейду зі стоку той самий запит є в `1DB_changes/update_4.5.2_fork.sql`.
+
 ## Навіщо
 
 Запити на кшталт «бігові кросівки nike» ведуть на сторінку категорії з одним брендом і одним
@@ -43,7 +46,8 @@
   (з одним брендом `brand-x` там 404).
 
 Рахуються видимі товари видимих брендів, при `missing_products = hide` — лише в наявності,
-тобто ті самі, що бачить відвідувач у лістингу.
+тобто ті самі, що бачить відвідувач у лістингу. Значення рахуються за translit поточної мови,
+як їх фільтрує лістинг: два значення з однаковим translit — одна сторінка й одне посилання.
 
 ## Robots і canonical
 
@@ -82,7 +86,9 @@
 | посадкова | інші значення того ж бренду, потім те саме значення інших брендів |
 | `/brand/x` без фільтрів | посадкові бренду в листових категоріях |
 
-На інших сторінках фільтра змінної немає. Посилання ведуть лише на кваліфіковані адреси, тобто
+На інших сторінках фільтра змінної немає. Набір береться з `$catalogFeatures` контролера: якщо
+позначена властивість туди не потрапила (наприклад, у категорії в неї немає значень), блоку
+немає й на сторінці категорії без фільтрів. Посилання ведуть лише на кваліфіковані адреси, тобто
 на сторінки з `index,follow`. Кожен елемент: `url`, `value_name`, `brand_name`, `feature_name`,
 `category_name`, `products_count`.
 
@@ -97,7 +103,11 @@
 {/if}
 ```
 
-Блок стоїть поза `#fn_products_content`, тож AJAX-фільтр його не перемальовує.
+Блок стоїть поза `#fn_products_content`, тож AJAX-фільтр його не перемальовує: після фільтрації
+JS-ом він лишається про вихідну адресу.
+
+На екранах до 991 px теми комплекту показують перші 12 посилань, решту — за кнопкою «Показати ще»
+(`<button aria-expanded aria-controls>`). Усі посилання лишаються в HTML сервера; без JS видно всі.
 
 ## Карта сайту
 
@@ -121,10 +131,13 @@
 
 - `BrandFeatureLandingsHelper`: `isLanding()`, `getCategoryLandings()`, `getCategoryLinks()`,
   `getBrandLinks()`, `getSitemapLandings()`, `getCountFilter()`, `getMinProducts()`,
-  `getMaxShare()`, `getLandingFeatures()` — усі через `ExtenderFacade`.
+  `getMaxShare()`, `getLandingFeatures()`, `filterLandings()` — усі через `ExtenderFacade`.
+- `filterLandings()` — єдина точка, через яку проходить кваліфікований набір. Розширення, що
+  прибирає чи додає пару тут, змінює robots, canonical, посилання й карту сайту разом.
 - `MetaRobotsHelper::getBrandFeatureLandingRobots()`, `CanonicalHelper::getBrandFeatureLandingCanonicalData()`;
   `getCatalogRobots()` і `getCatalogCanonicalData()` не змінились.
-- `ProductsEntity::countGroupedByBrand()` — підрахунок тими самими умовами, що й `count()`.
+- `ProductsEntity::countGroupedByBrand()` — підрахунок тими самими умовами, що й `count()`;
+  значення групуються за translit поточної мови.
 - `CategoryMetadataHelper::setUp()` отримав необов'язковий останній аргумент `$metaRobots`;
   `null` — robots обчислюються як раніше.
 - Конструктор `SiteMapHelper` отримав останній аргумент `BrandFeatureLandingsHelper` (DI передає сам).

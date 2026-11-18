@@ -348,7 +348,7 @@ class CanonicalHelper
                 $result['page'] = null;
 
                 if (!empty($featuresFilter)) {
-                    // Заполняем массив, где ключи - транслиты свойств, значение null, чтобы удалить эти значения
+                    // Ключі — url властивостей, null прибирає їх з адреси
                     $result = array_merge($result,
                         array_fill_keys(array_keys($featuresFilter), null)
                     );
@@ -369,11 +369,11 @@ class CanonicalHelper
     }
 
     /**
-     * @param string|int $page текущая страница, может быть all
-     * @param array $otherFilter одномерный массив, содержащий значения ['discounted', 'featured'...]
-     * @return array|false
+     * Canonical для сторінок списків товарів (discounted, all-products, brand).
      *
-     * Определение canonical для страниц списков товаров (discounted, all-products, brand)
+     * @param string|int $page поточна сторінка, може бути all
+     * @param array $otherFilter одновимірний масив значень ['discounted', 'featured'...]
+     * @return array|false
      */
     private function getBaseCatalogCanonicalData($page, array $otherFilter)
     {

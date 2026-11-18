@@ -72,7 +72,8 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
             $values = [];
             foreach ($this->entity()->countGroupedByBrand($filter, [$this->ids['feature']]) as $row) {
                 $this->assertSame($this->ids['feature'], (int) $row->feature_id);
-                $values[(int) $row->brand_id][(int) $row->value_id] = (int) $row->count;
+                $this->assertArrayNotHasKey($row->translit, $values[(int) $row->brand_id] ?? [], 'один translit — один рядок');
+                $values[(int) $row->brand_id][$row->translit] = (int) $row->count;
             }
             $pairs = [];
             foreach ($this->entity()->countGroupedByBrand($filter) as $row) {
@@ -91,7 +92,7 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
                         'brand_id' => [$brandId],
                         'features' => [$this->ids['feature'] => [self::TRANSLIT[$value]]],
                     ]);
-                    $this->assertSame($expected, $values[$brandId][$this->ids[$value]] ?? 0, "$category / $brand / $value");
+                    $this->assertSame($expected, $values[$brandId][self::TRANSLIT[$value]] ?? 0, "$category / $brand / $value");
                 }
             }
         }
@@ -126,7 +127,30 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
     {
         $rows = $this->rows($this->entity()->countGroupedByBrand($this->filter($this->children['parent'], false), [$this->ids['feature']]));
 
-        $this->assertSame(1, $rows[$this->ids['brand_a'] . '/' . $this->ids['value_two']]);
+        $this->assertSame(1, $rows[$this->ids['brand_a'] . '/' . self::TRANSLIT['value_two']]);
+    }
+
+    /**
+     * Лістинг фільтрує за translit, тож значення з однаковим translit — одна сторінка: рядок один,
+     * товар з обома значеннями рахується раз, value_id — найменший.
+     */
+    public function testValuesSharingATranslitAreCountedTogether(): void
+    {
+        $rows = $this->entity()->countGroupedByBrand($this->filter($this->children['leaf_a'], false), [$this->ids['feature']]);
+        $one = array_values(array_filter(
+            $rows,
+            fn (object $r) => (int) $r->brand_id === $this->ids['brand_a'] && $r->translit === self::TRANSLIT['value_one']
+        ));
+
+        $this->assertCount(1, $one);
+        $this->assertSame(min($this->ids['value_one'], $this->ids['value_one_dup']), (int) $one[0]->value_id);
+        $this->assertSame(
+            (int) $this->entity()->count($this->filter($this->children['leaf_a'], false) + [
+                'brand_id' => [$this->ids['brand_a']],
+                'features' => [$this->ids['feature'] => [self::TRANSLIT['value_one']]],
+            ]),
+            (int) $one[0]->count
+        );
     }
 
     public function testPerCategoryWithoutCategoryFilterIsEmpty(): void
@@ -157,7 +181,7 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
     {
         $result = [];
         foreach ($rows as $row) {
-            $key = $row->brand_id . (isset($row->value_id) ? '/' . $row->value_id : '');
+            $key = $row->brand_id . (isset($row->translit) ? '/' . $row->translit : '');
             if ($perCategory) {
                 $result[(int) $row->category_id][$key] = (int) $row->count;
             } else {
@@ -199,6 +223,7 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
         $this->ids['feature_other'] = $this->insert('features', ['name' => 'fx other', 'url' => 'fxbfcother']);
         $this->ids['value_one'] = $this->value($this->ids['feature'], self::TRANSLIT['value_one']);
         $this->ids['value_two'] = $this->value($this->ids['feature'], self::TRANSLIT['value_two']);
+        $this->ids['value_one_dup'] = $this->value($this->ids['feature'], self::TRANSLIT['value_one'], 'FXBFCONE');
         $this->ids['value_other'] = $this->value($this->ids['feature_other'], self::TRANSLIT['value_other']);
 
         $this->product('a1', 'brand_a', ['leaf_a'], true, null, ['value_one']);
@@ -211,6 +236,8 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
         $this->product('b1', 'brand_b', ['leaf_a'], true, 5, ['value_one']);
         $this->product('b2', 'brand_b', ['parent'], true, 0, ['value_two']);
         $this->product('h1', 'brand_hidden', ['leaf_a'], true, 5, ['value_one']);
+        $this->product('d1', 'brand_a', ['leaf_a'], true, 5, ['value_one_dup']);
+        $this->product('d2', 'brand_a', ['leaf_a'], true, 5, ['value_one', 'value_one_dup']);
     }
 
     private function brand(string $key, int $visible): int
@@ -226,15 +253,16 @@ class ProductsBrandFeatureCountsDatabaseTest extends TestCase
         ]);
     }
 
-    private function value(int $featureId, string $value): int
+    private function value(int $featureId, string $translit, ?string $value = null): int
     {
-        $id = $this->insert('features_values', ['feature_id' => $featureId, 'value' => $value, 'translit' => $value, 'position' => 0]);
+        $value ??= $translit;
+        $id = $this->insert('features_values', ['feature_id' => $featureId, 'value' => $value, 'translit' => $translit, 'position' => 0]);
         foreach ($this->pdo->fetchCol("SELECT id FROM {$this->px}languages") as $langId) {
             $this->insert('lang_features_values', [
                 'lang_id' => $langId,
                 'feature_value_id' => $id,
                 'value' => $value,
-                'translit' => $value,
+                'translit' => $translit,
                 'position' => 0,
             ]);
         }

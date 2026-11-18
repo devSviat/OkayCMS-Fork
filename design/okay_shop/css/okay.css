@@ -3204,3 +3204,23 @@ button.swiper-pagination-bullet {
 .brand_feature_landings__category {
   color: rgb(120, 120, 120);
 }
+
+.brand_feature_landings__more {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: 1px solid rgb(220, 220, 220);
+  border-radius: 5px;
+  background: rgb(255, 255, 255);
+  font-size: 14px;
+  cursor: pointer;
+}
+@media only screen and (max-width: 991px) {
+  [data-landings-collapsed] [data-landings-extra] {
+    display: none;
+  }
+}
+@media only screen and (min-width: 992px) {
+  [data-landings-more] {
+    display: none;
+  }
+}

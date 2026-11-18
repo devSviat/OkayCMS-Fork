@@ -11388,3 +11388,23 @@ a.top_admin_bookmark::before {
 .vs-landings__link {
 	text-decoration: none;
 }
+
+.vs-landings__more {
+	margin-top: var(--vs-space-2);
+}
+
+.vs-landings__more[hidden] {
+	display: none;
+}
+
+@media (max-width: 991px) {
+	[data-landings-collapsed] [data-landings-extra] {
+		display: none;
+	}
+}
+
+@media (min-width: 992px) {
+	[data-landings-more] {
+		display: none;
+	}
+}

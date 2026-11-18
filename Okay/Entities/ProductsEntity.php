@@ -291,11 +291,13 @@ class ProductsEntity extends Entity implements RelatedProductsInterface
      * Кількість товарів за брендом одним запитом, з тими самими умовами $filter, що й count().
      * Бренд мусить бути видимим: прихований віддає 404 на /catalog/x/brand-y.
      *
-     * @param int[] $featuresIds додатково групує за значеннями цих властивостей
+     * @param int[] $featuresIds додатково групує за translit значень цих властивостей у поточній мові —
+     *                          як filter__features лістингу: значення з однаковим translit дають одну
+     *                          сторінку; value_id — найменший id серед них
      * @param bool $perCategory групує за pc.category_id; потрібен фільтр category_id. Товар
      *                          у кількох категоріях рахується в кожній, тож суму листів не можна
      *                          брати за кількість у батьківській категорії
-     * @return object[] brand_id, [category_id,] [feature_id, value_id,] count
+     * @return object[] brand_id, [category_id,] [feature_id, translit, value_id,] count
      */
     public function countGroupedByBrand(array $filter, array $featuresIds = [], bool $perCategory = false): array
     {
@@ -321,11 +323,26 @@ class ProductsEntity extends Entity implements RelatedProductsInterface
                     'cgfv.id = cgpf.value_id AND cgfv.feature_id IN (:count_grouped_features_ids)'
                 )
                 ->bindValue('count_grouped_features_ids', array_map(intval(...), $featuresIds));
+
+            $translit = 'cgfv.translit';
+            if (!empty($this->lang->getLangId())) {
+                $this->select->join(
+                    'INNER',
+                    '__lang_features_values AS cglfv',
+                    'cglfv.feature_value_id = cgpf.value_id AND cglfv.lang_id = :count_grouped_lang_id'
+                )->bindValue('count_grouped_lang_id', (int)$this->lang->getLangId());
+                $translit = 'cglfv.translit';
+            }
             $group[] = 'cgfv.feature_id';
-            $group[] = 'cgpf.value_id';
+            $group[] = $translit;
         }
 
-        $this->select->cols(array_merge($group, ['COUNT(DISTINCT p.id) AS count']))->groupBy($group);
+        $cols = $group;
+        if (!empty($featuresIds)) {
+            $cols[array_key_last($cols)] = $translit . ' AS translit';
+            $cols[] = 'MIN(cgpf.value_id) AS value_id';
+        }
+        $this->select->cols(array_merge($cols, ['COUNT(DISTINCT p.id) AS count']))->groupBy($group);
 
         $this->db->query($this->customChangeSelect($this->select));
 

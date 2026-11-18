@@ -87,7 +87,7 @@ class BrandFeatureLandingsHelper
      * Два запити на категорію за весь запит сторінки.
      *
      * @param object[] $catalogFeatures властивості категорії, як у CategoryController
-     * @return object[] category_id, brand_id, feature_id, value_id, products_count, pair_products_count
+     * @return object[] category_id, brand_id, feature_id, translit, value_id, products_count, pair_products_count
      */
     public function getCategoryLandings(object $category, array $catalogFeatures): array
     {
@@ -143,12 +143,12 @@ class BrandFeatureLandingsHelper
                 $selection = array_filter($selection, static fn(object $l) => $l->brand_id === $brandsIds[0]);
             }
         } elseif (($pair = $this->landingPair($productsFilter)) !== null) {
-            [$brandId, $featureId, $valueId] = $pair;
+            [$brandId, $featureId, $translit] = $pair;
             $landings = $this->getCategoryLandings($category, $catalogFeatures);
-            if ($this->findLanding($landings, $brandId, $featureId, $valueId) !== null) {
-                $sameBrand = array_filter($landings, static fn(object $l) => $l->brand_id === $brandId && $l->value_id !== $valueId);
+            if ($this->findLanding($landings, $brandId, $featureId, $translit) !== null) {
+                $sameBrand = array_filter($landings, static fn(object $l) => $l->brand_id === $brandId && $l->translit !== $translit);
                 $sameValue = array_slice(
-                    array_values(array_filter($landings, static fn(object $l) => $l->value_id === $valueId && $l->brand_id !== $brandId)),
+                    array_values(array_filter($landings, static fn(object $l) => $l->translit === $translit && $l->brand_id !== $brandId)),
                     0,
                     intdiv(self::LINKS_LIMIT, 3)
                 );
@@ -249,11 +249,23 @@ class BrandFeatureLandingsHelper
         return ExtenderFacade::execute(__METHOD__, $filter, func_get_args());
     }
 
-    protected function landingUrl(object $category, object $brand, object $feature, object $value, bool $absolute): string
+    /**
+     * Єдина точка, через яку проходить кваліфікований набір: robots, canonical, посилання й карта
+     * сайту беруть уже відфільтрований результат, тож пара, прибрана розширенням, зникає скрізь.
+     *
+     * @param object[] $landings як у getCategoryLandings()
+     * @return object[]
+     */
+    public function filterLandings(array $landings): array
+    {
+        return ExtenderFacade::execute(__METHOD__, $landings, func_get_args());
+    }
+
+    protected function landingUrl(object $category, object $brand, object $feature, string $translit, bool $absolute): string
     {
         return Router::generateUrl('category', [
             'url' => $category->url,
-            'filtersUrl' => ['brand' => $brand->url, $feature->url => $value->translit],
+            'filtersUrl' => ['brand' => $brand->url, $feature->url => $translit],
         ], $absolute);
     }
 
@@ -310,7 +322,7 @@ class BrandFeatureLandingsHelper
         }
         usort($landings, [$this, 'compareLandings']);
 
-        return $landings;
+        return $this->filterLandings($landings);
     }
 
     /**
@@ -332,11 +344,13 @@ class BrandFeatureLandingsHelper
         foreach ($rows as $row) {
             $count = (int)$row->count;
             $pairCount = $pairs[(int)$row->brand_id] ?? 0;
-            if ($count >= $minProducts && $pairCount > 0 && $count * 100 <= $maxShare * $pairCount) {
+            // Без translit адреса посадкової не будується, а лістинг такого значення не знайде.
+            if ((string)$row->translit !== '' && $count >= $minProducts && $pairCount > 0 && $count * 100 <= $maxShare * $pairCount) {
                 $result[] = (object)[
                     'category_id' => $categoryId,
                     'brand_id' => (int)$row->brand_id,
                     'feature_id' => (int)$row->feature_id,
+                    'translit' => (string)$row->translit,
                     'value_id' => (int)$row->value_id,
                     'products_count' => $count,
                     'pair_products_count' => $pairCount,
@@ -403,6 +417,7 @@ class BrandFeatureLandingsHelper
             'id' => array_values(array_unique(array_column($landings, 'brand_id'))),
         ]);
 
+        /** @var array<string, object> $links за url: однакові адреси дають одне посилання */
         $links = [];
         foreach ($landings as $landing) {
             $value = $values[$landing->value_id] ?? null;
@@ -411,12 +426,17 @@ class BrandFeatureLandingsHelper
             $category = $categoriesEntity->get($landing->category_id);
 
             // Без будь-якої з частин адреса посадкової не будується.
-            if (empty($value->translit) || empty($brand->url) || empty($feature->url) || empty($category->url)) {
+            if ($value === null || empty($brand->url) || empty($feature->url) || empty($category->url)) {
                 continue;
             }
 
-            $links[] = (object)[
-                'url' => $this->landingUrl($category, $brand, $feature, $value, $absolute),
+            $url = $this->landingUrl($category, $brand, $feature, $landing->translit, $absolute);
+            if (isset($links[$url])) {
+                continue;
+            }
+
+            $links[$url] = (object)[
+                'url' => $url,
                 'value_name' => $value->value,
                 'brand_name' => $brand->name,
                 'feature_name' => $feature->name,
@@ -425,11 +445,11 @@ class BrandFeatureLandingsHelper
             ];
         }
 
-        return $links;
+        return array_values($links);
     }
 
     /**
-     * @return array{0: int, 1: int, 2: int}|null бренд, властивість, значення
+     * @return array{0: int, 1: int, 2: string}|null бренд, властивість, translit значення
      */
     private function landingPair(array $productsFilter): ?array
     {
@@ -445,13 +465,14 @@ class BrandFeatureLandingsHelper
             return null;
         }
 
-        return [(int)reset($brandsIds), (int)array_key_first($features), (int)array_key_first($values)];
+        return [(int)reset($brandsIds), (int)array_key_first($features), (string)reset($values)];
     }
 
-    private function findLanding(array $landings, int $brandId, int $featureId, int $valueId): ?object
+    /** За translit, як лістинг: значення з однаковим translit — та сама сторінка. */
+    private function findLanding(array $landings, int $brandId, int $featureId, string $translit): ?object
     {
         foreach ($landings as $landing) {
-            if ($landing->brand_id === $brandId && $landing->feature_id === $featureId && $landing->value_id === $valueId) {
+            if ($landing->brand_id === $brandId && $landing->feature_id === $featureId && $landing->translit === $translit) {
                 return $landing;
             }
         }

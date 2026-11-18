@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  */
 class BrandFeatureLandingIndexingTest extends TestCase
 {
-    private const array FEATURES = ['type' => ['brush']];
+    private const array FEATURES = ['kind' => ['brush']];
     private const array BRANDS = [7];
 
     protected function setUp(): void
@@ -111,10 +111,10 @@ class BrandFeatureLandingIndexingTest extends TestCase
     {
         $helper = $this->robots(ROBOTS_NOINDEX_FOLLOW);
         $helper->setAvailableFeatures([
-            (object)['id' => 5, 'features_values' => [(object)['value' => 'brush', 'to_index' => 0]]],
+            (object)['id' => 42, 'features_values' => [(object)['value' => 'brush', 'to_index' => 0]]],
         ]);
 
-        $this->assertSame(ROBOTS_NOINDEX_NOFOLLOW, $helper->getCatalogRobots('', [], [5 => ['brush']], self::BRANDS));
+        $this->assertSame(ROBOTS_NOINDEX_NOFOLLOW, $helper->getCatalogRobots('', [], [42 => ['brush']], self::BRANDS));
         $this->assertSame(ROBOTS_INDEX_FOLLOW, $helper->getBrandFeatureLandingRobots(''));
     }
 
@@ -122,7 +122,7 @@ class BrandFeatureLandingIndexingTest extends TestCase
     {
         require_once 'Okay/Core/config/constants.php';
 
-        $withoutFilter = ['page' => null, 'type' => null, 'brand' => null, 'sort' => null];
+        $withoutFilter = ['page' => null, 'kind' => null, 'brand' => null, 'sort' => null];
 
         return [
             'перша сторінка' => ['', CANONICAL_CURRENT_PAGE, ['sort' => null]],
@@ -159,7 +159,7 @@ class BrandFeatureLandingIndexingTest extends TestCase
         $helper = $this->canonical(CANONICAL_CURRENT_PAGE);
 
         $this->assertSame(
-            ['type' => null, 'brand' => null, 'sort' => null],
+            ['kind' => null, 'brand' => null, 'sort' => null],
             $helper->getCatalogCanonicalData('', [], self::FEATURES, self::BRANDS)
         );
     }

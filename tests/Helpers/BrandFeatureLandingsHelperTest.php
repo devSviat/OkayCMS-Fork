@@ -19,7 +19,8 @@ use PHPUnit\Framework\TestCase;
  * сайту й robots беруть один і той самий набір, тож посилань на noindex не буває.
  *
  * Каталог: 1 → 2, 3 (піддерево); 4 окремо, в ній один бренд. Бренди 10 (acme), 11 (bolt).
- * Властивість 5 (type) позначена, 6 (color) — ні. Значення 51 brush, 52 motor, 53 filter, 61 red.
+ * Властивість 42 (kind) позначена, 43 (color) — ні. Значення 51 brush, 52 motor, 53 filter, 61 red;
+ * 54 — інше значення з тим самим translit, що й 51.
  *
  *   2: acme brush ×5, acme motor ×3, bolt brush ×2, acme без значення ×2
  *   3: acme filter ×6, acme без значення ×4, bolt filter ×5, bolt без значення ×5
@@ -92,7 +93,7 @@ class BrandFeatureLandingsHelperTest extends TestCase
         $helper = $this->helper([], $products);
         $features = $this->catalogFeatures(false);
 
-        $this->assertFalse($helper->isLanding($this->category(1), $features, $this->filter([10], [5 => [51 => 'brush']])));
+        $this->assertFalse($helper->isLanding($this->category(1), $features, $this->filter([10], [42 => [51 => 'brush']])));
         $this->assertSame([], $helper->getCategoryLinks($this->category(1), $features, $this->filter()));
         $this->assertSame([], $helper->getBrandLinks($this->brand(10), $features, ['brand_id' => [10], 'visible' => 1]));
         $this->assertSame(0, $products->calls);
@@ -102,25 +103,25 @@ class BrandFeatureLandingsHelperTest extends TestCase
     {
         $helper = $this->helper();
 
-        $this->assertTrue($helper->isLanding($this->category(1), $this->catalogFeatures(), $this->filter([10], [5 => [51 => 'brush']])));
-        $this->assertTrue($helper->isLanding($this->category(1), $this->catalogFeatures(), $this->filter([10], [5 => [51 => 'brush']]) + ['page' => 2, 'limit' => 24]));
+        $this->assertTrue($helper->isLanding($this->category(1), $this->catalogFeatures(), $this->filter([10], [42 => [51 => 'brush']])));
+        $this->assertTrue($helper->isLanding($this->category(1), $this->catalogFeatures(), $this->filter([10], [42 => [51 => 'brush']]) + ['page' => 2, 'limit' => 24]));
     }
 
     public static function notLandingCases(): array
     {
-        $landing = ['brand_id' => [10], 'features' => [5 => [51 => 'brush']]];
+        $landing = ['brand_id' => [10], 'features' => [42 => [51 => 'brush']]];
 
         return [
-            'без бренду' => [['features' => [5 => [51 => 'brush']]]],
+            'без бренду' => [['features' => [42 => [51 => 'brush']]]],
             'без властивості' => [['brand_id' => [10]]],
             'два бренди' => [['brand_id' => [10, 11]] + $landing],
-            'два значення' => [['features' => [5 => [51 => 'brush', 53 => 'filter']]] + $landing],
-            'дві властивості' => [['features' => [5 => [51 => 'brush'], 6 => [61 => 'red']]] + $landing],
-            'непозначена властивість' => [['features' => [6 => [61 => 'red']]] + $landing],
+            'два значення' => [['features' => [42 => [51 => 'brush', 53 => 'filter']]] + $landing],
+            'дві властивості' => [['features' => [42 => [51 => 'brush'], 43 => [61 => 'red']]] + $landing],
+            'непозначена властивість' => [['features' => [43 => [61 => 'red']]] + $landing],
             'filter-*' => [$landing + ['other_filter' => ['discounted']]],
             'ціна' => [$landing + ['price' => ['min' => 1, 'max' => 100]]],
             'пошук' => [$landing + ['keyword' => 'brush']],
-            'нижче порогу' => [['features' => [5 => [52 => 'motor']]] + $landing],
+            'нижче порогу' => [['features' => [42 => [52 => 'motor']]] + $landing],
             'інший бренд нижче порогу' => [['brand_id' => [11]] + $landing],
         ];
     }
@@ -139,8 +140,8 @@ class BrandFeatureLandingsHelperTest extends TestCase
         $products = $this->productsEntity();
         $helper = $this->helper([], $products);
 
-        $helper->isLanding($this->category(1), $this->catalogFeatures(), $this->filter([10], [5 => [51 => 'brush']]));
-        $helper->getCategoryLinks($this->category(1), $this->catalogFeatures(), $this->filter([10], [5 => [51 => 'brush']]));
+        $helper->isLanding($this->category(1), $this->catalogFeatures(), $this->filter([10], [42 => [51 => 'brush']]));
+        $helper->getCategoryLinks($this->category(1), $this->catalogFeatures(), $this->filter([10], [42 => [51 => 'brush']]));
         $helper->getCategoryLinks($this->category(1), $this->catalogFeatures(), $this->filter());
 
         $this->assertSame(2, $products->calls);
@@ -151,22 +152,22 @@ class BrandFeatureLandingsHelperTest extends TestCase
         $helper = $this->helper();
         $features = $this->catalogFeatures();
 
-        $this->assertSame(['1/acme/type-brush', '1/acme/type-filter', '1/bolt/type-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $features, $this->filter())));
-        $this->assertSame(['1/bolt/type-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $features, $this->filter([11]))));
+        $this->assertSame(['1/acme/kind-brush', '1/acme/kind-filter', '1/bolt/kind-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $features, $this->filter())));
+        $this->assertSame(['1/bolt/kind-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $features, $this->filter([11]))));
         // Посадкова: інші значення того ж бренду, потім те саме значення інших брендів; себе — ні.
-        $this->assertSame(['1/acme/type-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $features, $this->filter([10], [5 => [51 => 'brush']]))));
-        $this->assertSame(['3/acme/type-filter'], $this->urls($helper->getCategoryLinks($this->category(3), $features, $this->filter([11], [5 => [53 => 'filter']]))));
+        $this->assertSame(['1/acme/kind-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $features, $this->filter([10], [42 => [51 => 'brush']]))));
+        $this->assertSame(['3/acme/kind-filter'], $this->urls($helper->getCategoryLinks($this->category(3), $features, $this->filter([11], [42 => [53 => 'filter']]))));
     }
 
     public static function noLinksCases(): array
     {
         return [
-            'властивість без бренду' => [['features' => [5 => [51 => 'brush']]]],
+            'властивість без бренду' => [['features' => [42 => [51 => 'brush']]]],
             'filter-*' => [['other_filter' => ['featured']]],
             'ціна' => [['price' => ['min' => 1, 'max' => 9]]],
             'пошук' => [['keyword' => 'a']],
             'два бренди' => [['brand_id' => [10, 11]]],
-            'бренд і непозначена властивість' => [['brand_id' => [10], 'features' => [6 => [61 => 'red']]]],
+            'бренд і непозначена властивість' => [['brand_id' => [10], 'features' => [43 => [61 => 'red']]]],
         ];
     }
 
@@ -199,13 +200,13 @@ class BrandFeatureLandingsHelperTest extends TestCase
     public function testBrandLinks(): void
     {
         $links = $this->helper()->getBrandLinks($this->brand(10), $this->catalogFeatures(), ['brand_id' => [10], 'visible' => 1]);
-        $this->assertSame(['2/acme/type-brush', '3/acme/type-filter'], $this->urls($links));
+        $this->assertSame(['2/acme/kind-brush', '3/acme/kind-filter'], $this->urls($links));
         $this->assertSame('Brush', $links[0]->value_name);
         $this->assertSame('Acme', $links[0]->brand_name);
         $this->assertSame('Category 2', $links[0]->category_name);
         $this->assertSame(6, $links[0]->products_count);
 
-        $this->assertSame([], $this->helper()->getBrandLinks($this->brand(10), $this->catalogFeatures(), ['brand_id' => [10], 'visible' => 1, 'features' => [5 => [51 => 'brush']]]));
+        $this->assertSame([], $this->helper()->getBrandLinks($this->brand(10), $this->catalogFeatures(), ['brand_id' => [10], 'visible' => 1, 'features' => [42 => [51 => 'brush']]]));
     }
 
     /** Інші бренди з тим самим значенням не витісняються значеннями свого бренду. */
@@ -224,11 +225,11 @@ class BrandFeatureLandingsHelperTest extends TestCase
         $products[] = [11, [4], []];
         $helper = $this->helper([], $this->productsEntity($products), range(100, 129));
 
-        $urls = $this->urls($helper->getCategoryLinks($this->category(4), $this->catalogFeatures(), $this->filter([10], [5 => [100 => 'v100']], 4)));
+        $urls = $this->urls($helper->getCategoryLinks($this->category(4), $this->catalogFeatures(), $this->filter([10], [42 => [100 => 'v100']], 4)));
 
         $this->assertCount(BrandFeatureLandingsHelper::LINKS_LIMIT, $urls);
-        $this->assertSame('4/bolt/type-v100', end($urls));
-        $this->assertNotContains('4/acme/type-v100', $urls);
+        $this->assertSame('4/bolt/kind-v100', end($urls));
+        $this->assertNotContains('4/acme/kind-v100', $urls);
     }
 
     /** Сторінка бренду бере посадкові з різних категорій по черзі. */
@@ -246,8 +247,63 @@ class BrandFeatureLandingsHelperTest extends TestCase
         $helper = $this->helper([], $this->productsEntity($products), [100, 101, 102, 110, 111]);
 
         $this->assertSame(
-            ['2/acme/type-v100', '3/acme/type-v110', '2/acme/type-v101', '3/acme/type-v111', '2/acme/type-v102'],
+            ['2/acme/kind-v100', '3/acme/kind-v110', '2/acme/kind-v101', '3/acme/kind-v111', '2/acme/kind-v102'],
             $this->urls($helper->getBrandLinks($this->brand(10), $this->catalogFeatures(), ['brand_id' => [10], 'visible' => 1]))
+        );
+    }
+
+    /**
+     * Лістинг фільтрує за translit, тож два значення з однаковим translit — одна сторінка:
+     * товари рахуються разом, посилання одне, а адреса з будь-яким із цих id — та сама посадкова.
+     */
+    public function testValuesSharingATranslitAreOneLanding(): void
+    {
+        $products = [];
+        foreach ([51, 54] as $value) {
+            for ($i = 0; $i < 3; $i++) {
+                $products[] = [10, [4], [$value]];
+            }
+        }
+        $products[] = [10, [4], []];
+        $products[] = [10, [4], []];
+        $products[] = [11, [4], []];
+        $helper = $this->helper([], $this->productsEntity($products));
+
+        $this->assertSame(['10/51' => 6], $this->landings($helper, 4));
+        $this->assertTrue($helper->isLanding($this->category(4), $this->catalogFeatures(), $this->filter([10], [42 => [54 => 'brush']], 4)));
+        $this->assertSame(['4/acme/kind-brush'], $this->urls($helper->getSitemapLandings()));
+    }
+
+    /** Значення без translit у поточній мові лістинг не знаходить, тож і посадкової немає. */
+    public function testValueWithoutTranslitIsNoLanding(): void
+    {
+        $products = array_fill(0, 6, [10, [4], [55]]);
+        $products[] = [10, [4], []];
+        $products[] = [10, [4], []];
+        $products[] = [11, [4], []];
+
+        $this->assertSame([], $this->landings($this->helper([], $this->productsEntity($products)), 4));
+    }
+
+    /**
+     * filterLandings() — єдина точка, через яку проходить кваліфікований набір: модуль, що прибирає
+     * пару, прибирає її з robots, посилань і карти сайту одночасно. Дублікат адреси не множить посилань.
+     */
+    public function testFilterLandingsIsTheSingleGate(): void
+    {
+        $helper = $this->helper([], null, null, null, [], static function (array $landings): array {
+            $kept = array_values(array_filter($landings, static fn(object $l) => $l->brand_id !== 11));
+
+            return array_merge($kept, $kept);
+        });
+
+        $this->assertSame(['10/51' => 6, '10/53' => 6], $this->landings($helper, 1));
+        $this->assertFalse($helper->isLanding($this->category(3), $this->catalogFeatures(), $this->filter([11], [42 => [53 => 'filter']], 3)));
+        $this->assertSame(['1/acme/kind-brush', '1/acme/kind-filter'], $this->urls($helper->getCategoryLinks($this->category(1), $this->catalogFeatures(), $this->filter())));
+        $this->assertSame([], $helper->getBrandLinks($this->brand(11), $this->catalogFeatures(), ['brand_id' => [11], 'visible' => 1]));
+        $this->assertSame(
+            ['1/acme/kind-brush', '1/acme/kind-filter', '2/acme/kind-brush', '3/acme/kind-filter'],
+            $this->urls($helper->getSitemapLandings(), true)
         );
     }
 
@@ -266,7 +322,7 @@ class BrandFeatureLandingsHelperTest extends TestCase
     public function testSitemapHasEveryQualifyingLandingOnce(): void
     {
         $this->assertSame(
-            ['1/acme/type-brush', '1/acme/type-filter', '1/bolt/type-filter', '2/acme/type-brush', '3/acme/type-filter', '3/bolt/type-filter'],
+            ['1/acme/kind-brush', '1/acme/kind-filter', '1/bolt/kind-filter', '2/acme/kind-brush', '3/acme/kind-filter', '3/bolt/kind-filter'],
             $this->urls($this->helper()->getSitemapLandings(), true)
         );
     }
@@ -274,15 +330,15 @@ class BrandFeatureLandingsHelperTest extends TestCase
     public function testSitemapSkipsCategoriesWithoutTheFeature(): void
     {
         $this->assertSame(
-            ['2/acme/type-brush'],
-            $this->urls($this->helper([], null, null, [5 => [2]])->getSitemapLandings(), true)
+            ['2/acme/kind-brush'],
+            $this->urls($this->helper([], null, null, [42 => [2]])->getSitemapLandings(), true)
         );
     }
 
     public function testSitemapSkipsBranchesUnderAHiddenAncestor(): void
     {
         $this->assertSame(
-            ['4/acme/type-brush'],
+            ['4/acme/kind-brush'],
             $this->urls($this->helper(['hide_single_filters' => 0], null, null, null, [1 => false])->getSitemapLandings(), true)
         );
     }
@@ -301,15 +357,15 @@ class BrandFeatureLandingsHelperTest extends TestCase
         }
 
         $this->assertSame(
-            ['3/acme/kind-k71'],
-            $this->urls($this->helper([], $this->productsEntity($products), [71], [5 => [2], 7 => [3]])->getSitemapLandings(), true)
+            ['3/acme/part-k71'],
+            $this->urls($this->helper([], $this->productsEntity($products), [71], [42 => [2], 44 => [3]])->getSitemapLandings(), true)
         );
     }
 
     public function testSitemapSkipsHiddenBranches(): void
     {
         $this->assertSame(
-            ['1/acme/type-brush', '1/acme/type-filter', '1/bolt/type-filter', '3/acme/type-filter', '3/bolt/type-filter'],
+            ['1/acme/kind-brush', '1/acme/kind-filter', '1/bolt/kind-filter', '3/acme/kind-filter', '3/bolt/kind-filter'],
             $this->urls($this->helper([], null, null, null, [2 => false])->getSitemapLandings(), true)
         );
     }
@@ -351,8 +407,8 @@ class BrandFeatureLandingsHelperTest extends TestCase
     private function catalogFeatures(bool $flagged = true): array
     {
         return [
-            5 => (object)['id' => 5, 'url' => 'type', 'name' => 'Type', 'index_with_brand' => (int)$flagged],
-            6 => (object)['id' => 6, 'url' => 'color', 'name' => 'Color', 'index_with_brand' => 0],
+            42 => (object)['id' => 42, 'url' => 'kind', 'name' => 'Kind', 'index_with_brand' => (int)$flagged],
+            43 => (object)['id' => 43, 'url' => 'color', 'name' => 'Color', 'index_with_brand' => 0],
         ];
     }
 
@@ -405,13 +461,15 @@ class BrandFeatureLandingsHelperTest extends TestCase
     private function productsEntity(?array $products = null): object
     {
         $products ??= self::catalog();
-        $valueFeature = static fn(int $valueId) => [61 => 6, 71 => 7][$valueId] ?? 5;
+        $valueFeature = static fn(int $valueId) => [61 => 43, 71 => 44][$valueId] ?? 42;
 
-        return new class($products, $valueFeature) {
+        $translit = static fn(int $valueId) => [51 => 'brush', 52 => 'motor', 53 => 'filter', 54 => 'brush', 55 => '', 61 => 'red', 71 => 'k71'][$valueId] ?? 'v' . $valueId;
+
+        return new class($products, $valueFeature, $translit) {
             public int $calls = 0;
             public array $scopes = [];
 
-            public function __construct(private array $products, private \Closure $valueFeature)
+            public function __construct(private array $products, private \Closure $valueFeature, private \Closure $translit)
             {
             }
 
@@ -425,6 +483,7 @@ class BrandFeatureLandingsHelperTest extends TestCase
                 $this->calls++;
                 $this->scopes[] = array_values((array)$filter['category_id']);
                 $sets = [];
+                $minValue = [];
                 foreach ($this->products as $id => [$brand, $categories, $values]) {
                     $inScope = array_intersect($categories, (array)$filter['category_id']);
                     if (!$inScope || (isset($filter['brand_id']) && !in_array($brand, (array)$filter['brand_id'], true))) {
@@ -432,12 +491,16 @@ class BrandFeatureLandingsHelperTest extends TestCase
                     }
                     foreach ($perCategory ? $inScope : [null] as $category) {
                         if (empty($featuresIds)) {
-                            $sets[json_encode([$category, $brand, null])][$id] = true;
+                            $sets[json_encode([$category, $brand, null, null])][$id] = true;
                             continue;
                         }
+                        // Як ProductsEntity: значення з однаковим translit — одна сторінка.
                         foreach ($values as $value) {
-                            if (in_array(($this->valueFeature)($value), $featuresIds, true)) {
-                                $sets[json_encode([$category, $brand, $value])][$id] = true;
+                            $feature = ($this->valueFeature)($value);
+                            if (in_array($feature, $featuresIds, true)) {
+                                $key = json_encode([$category, $brand, $feature, ($this->translit)($value)]);
+                                $sets[$key][$id] = true;
+                                $minValue[$key] = min($minValue[$key] ?? PHP_INT_MAX, $value);
                             }
                         }
                     }
@@ -445,14 +508,15 @@ class BrandFeatureLandingsHelperTest extends TestCase
 
                 $rows = [];
                 foreach ($sets as $key => $ids) {
-                    [$category, $brand, $value] = json_decode($key);
+                    [$category, $brand, $feature, $translit] = json_decode($key);
                     $row = ['brand_id' => (string)$brand, 'count' => (string)count($ids)];
                     if ($perCategory) {
                         $row['category_id'] = (string)$category;
                     }
                     if (!empty($featuresIds)) {
-                        $row['feature_id'] = (string)($this->valueFeature)($value);
-                        $row['value_id'] = (string)$value;
+                        $row['feature_id'] = (string)$feature;
+                        $row['translit'] = $translit;
+                        $row['value_id'] = (string)$minValue[$key];
                     }
                     $rows[] = (object)$row;
                 }
@@ -467,22 +531,24 @@ class BrandFeatureLandingsHelperTest extends TestCase
         ?object $products = null,
         ?array $extraValues = null,
         ?array $featureCategories = null,
-        array $visible = []
+        array $visible = [],
+        ?\Closure $filterLandings = null
     ): BrandFeatureLandingsHelper {
         $settings += ['hide_single_filters' => 1];
         $settingsStub = $this->createStub(Settings::class);
         $settingsStub->method('get')->willReturnCallback(static fn($param) => $settings[$param] ?? null);
 
         $values = [
-            51 => (object)['id' => 51, 'feature_id' => 5, 'value' => 'Brush', 'translit' => 'brush'],
-            52 => (object)['id' => 52, 'feature_id' => 5, 'value' => 'Motor', 'translit' => 'motor'],
-            53 => (object)['id' => 53, 'feature_id' => 5, 'value' => 'Filter', 'translit' => 'filter'],
-            61 => (object)['id' => 61, 'feature_id' => 6, 'value' => 'Red', 'translit' => 'red'],
+            51 => (object)['id' => 51, 'feature_id' => 42, 'value' => 'Brush', 'translit' => 'brush'],
+            52 => (object)['id' => 52, 'feature_id' => 42, 'value' => 'Motor', 'translit' => 'motor'],
+            53 => (object)['id' => 53, 'feature_id' => 42, 'value' => 'Filter', 'translit' => 'filter'],
+            54 => (object)['id' => 54, 'feature_id' => 42, 'value' => 'brush', 'translit' => 'brush'],
+            61 => (object)['id' => 61, 'feature_id' => 43, 'value' => 'Red', 'translit' => 'red'],
         ];
         foreach ($extraValues ?? [] as $id) {
             $values[$id] = $id === 71
-                ? (object)['id' => $id, 'feature_id' => 7, 'value' => 'K71', 'translit' => 'k71']
-                : (object)['id' => $id, 'feature_id' => 5, 'value' => 'V' . $id, 'translit' => 'v' . $id];
+                ? (object)['id' => $id, 'feature_id' => 44, 'value' => 'K71', 'translit' => 'k71']
+                : (object)['id' => $id, 'feature_id' => 42, 'value' => 'V' . $id, 'translit' => 'v' . $id];
         }
 
         $categories = [];
@@ -500,21 +566,31 @@ class BrandFeatureLandingsHelperTest extends TestCase
             CategoriesEntity::class => new FakeEntity(fn(array $filter) => $categories, fn($id) => $categories[$id] ?? null),
             FeaturesEntity::class => new FakeEntity(
                 fn(array $filter) => [
-                    5 => $this->catalogFeatures()[5],
-                    7 => (object)['id' => 7, 'url' => 'kind', 'name' => 'Kind', 'index_with_brand' => 1],
+                    42 => $this->catalogFeatures()[42],
+                    44 => (object)['id' => 44, 'url' => 'part', 'name' => 'Part', 'index_with_brand' => 1],
                 ],
                 null,
-                fn($featureId) => ($featureCategories ?? [5 => [1, 2, 3, 4], 6 => [2]])[$featureId] ?? []
+                fn($featureId) => ($featureCategories ?? [42 => [1, 2, 3, 4], 43 => [2]])[$featureId] ?? []
             ),
         ];
 
         $factory = $this->createStub(EntityFactory::class);
         $factory->method('get')->willReturnCallback(static fn(string $class) => $entities[$class]);
 
-        return new class($factory, $settingsStub) extends BrandFeatureLandingsHelper {
-            protected function landingUrl(object $category, object $brand, object $feature, object $value, bool $absolute): string
+        return new class($factory, $settingsStub, $filterLandings) extends BrandFeatureLandingsHelper {
+            public function __construct($factory, $settings, private ?\Closure $filter)
             {
-                return "{$category->url}/{$brand->url}/{$feature->url}-{$value->translit}";
+                parent::__construct($factory, $settings);
+            }
+
+            public function filterLandings(array $landings): array
+            {
+                return $this->filter ? ($this->filter)($landings) : parent::filterLandings($landings);
+            }
+
+            protected function landingUrl(object $category, object $brand, object $feature, string $translit, bool $absolute): string
+            {
+                return "{$category->url}/{$brand->url}/{$feature->url}-{$translit}";
             }
         };
     }
