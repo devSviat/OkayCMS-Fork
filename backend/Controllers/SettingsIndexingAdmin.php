@@ -12,6 +12,22 @@ use Okay\Core\Phone;
 
 class SettingsIndexingAdmin extends IndexAdmin
 {
+    /** Ті самі значення, що пропонує форма; 0 — як для категорії з брендом. */
+    private const array CANONICAL_ALL_PRODUCTS_BRAND = [
+        0,
+        CANONICAL_BRAND_PAGE,
+        CANONICAL_WITHOUT_FILTER,
+        CANONICAL_WITH_FILTER,
+        CANONICAL_ABSENT,
+    ];
+
+    private const array ROBOTS_ALL_PRODUCTS_BRAND = [
+        0,
+        ROBOTS_INDEX_FOLLOW,
+        ROBOTS_NOINDEX_FOLLOW,
+        ROBOTS_NOINDEX_NOFOLLOW,
+    ];
+
     public function fetch()
     {
         if ($this->request->method('post')) {
@@ -24,6 +40,12 @@ class SettingsIndexingAdmin extends IndexAdmin
             );
             $this->settings->set('canonical_category_brand', 
                 $this->request->post('canonical_category_brand', null, CANONICAL_WITHOUT_FILTER)
+            );
+            $this->settings->set('canonical_all_products_brand',
+                self::allowedOrInherit(
+                    $this->request->post('canonical_all_products_brand', 'integer'),
+                    self::CANONICAL_ALL_PRODUCTS_BRAND
+                )
             );
             $this->settings->set('canonical_category_features', 
                 $this->request->post('canonical_category_features', null, CANONICAL_WITHOUT_FILTER)
@@ -43,6 +65,12 @@ class SettingsIndexingAdmin extends IndexAdmin
             );
             $this->settings->set('robots_category_brand', 
                 $this->request->post('robots_category_brand', null, ROBOTS_INDEX_FOLLOW)
+            );
+            $this->settings->set('robots_all_products_brand',
+                self::allowedOrInherit(
+                    $this->request->post('robots_all_products_brand', 'integer'),
+                    self::ROBOTS_ALL_PRODUCTS_BRAND
+                )
             );
             $this->settings->set('robots_category_features', 
                 $this->request->post('robots_category_features', null, ROBOTS_INDEX_FOLLOW)
@@ -64,5 +92,10 @@ class SettingsIndexingAdmin extends IndexAdmin
         }
         
         $this->response->setContent('settings_indexing.tpl');
+    }
+
+    private static function allowedOrInherit(int $value, array $allowed): int
+    {
+        return in_array($value, $allowed, true) ? $value : 0;
     }
 }

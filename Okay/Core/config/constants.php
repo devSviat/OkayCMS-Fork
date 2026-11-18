@@ -32,6 +32,8 @@ const CANONICAL_WITH_FILTER = 4;
 const CANONICAL_CURRENT_PAGE = 5;
 const CANONICAL_WITHOUT_FILTER = 6;
 const CANONICAL_WITHOUT_FILTER_FIRST_PAGE = 7;
+// Лише для /all-products/brand-x: та сама вибірка є сторінкою бренду /brand/x.
+const CANONICAL_BRAND_PAGE = 8;
 
 // Настройки <meta name="robots">
 const ROBOTS_INDEX_FOLLOW = 1;

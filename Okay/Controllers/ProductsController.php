@@ -8,6 +8,7 @@ use Okay\Core\Image;
 use Okay\Core\Money;
 use Okay\Core\Response;
 use Okay\Core\Router;
+use Okay\Entities\BrandsEntity;
 use Okay\Entities\ProductsEntity;
 use Okay\Helpers\CanonicalHelper;
 use Okay\Helpers\CatalogHelper;
@@ -26,6 +27,7 @@ class ProductsController extends AbstractController
         AllProductsMetadataHelper $allProductsMetadataHelper,
         CanonicalHelper           $canonicalHelper,
         MetaRobotsHelper          $metaRobotsHelper,
+        BrandsEntity              $brandsEntity,
                                   $filtersUrl = ''
     ) {
         $this->design->assign('filtersUrl', !empty($filtersUrl) ? $filtersUrl : '', true);
@@ -119,7 +121,7 @@ class ProductsController extends AbstractController
         if (isset($productsFilter['keyword'])) {
             $catalogRobots = ROBOTS_NOINDEX_NOFOLLOW;
         } else {
-            $catalogRobots = $metaRobotsHelper->getCatalogRobots(
+            $catalogRobots = $metaRobotsHelper->getAllProductsRobots(
                 $currentPage,
                 $productsFilter['other_filter'] ?? [],
                 $metaArray['features_values'] ?? [],
@@ -145,15 +147,27 @@ class ProductsController extends AbstractController
             $canonicalFeaturesValues = [];
         }
 
-        $canonicalData = $canonicalHelper->getCatalogCanonicalData(
+        $canonicalArgs = [
             $currentPage,
             $productsFilter['other_filter'] ?? [],
             $canonicalFeaturesValues,
-            $productsFilter['brand_id'] ?? []
-        );
+            $productsFilter['brand_id'] ?? [],
+        ];
+
+        // Пошук (завжди noindex) не склеюється зі сторінкою бренду, canonical як був.
+        // Прихований бренд віддає 404 на /brand/x, тому теж лишається на /all-products.
+        if (!isset($productsFilter['keyword'])
+            && ($canonicalData = $canonicalHelper->getAllProductsBrandPageCanonicalData(...$canonicalArgs)) !== null
+            && ($canonicalBrand = $brandsEntity->get((int)reset($productsFilter['brand_id'])))
+            && $canonicalBrand->visible
+        ) {
+            $canonical = Router::generateUrl('brand', ['url' => $canonicalBrand->url], true);
+        } else {
+            $canonicalData = $canonicalHelper->getAllProductsCanonicalData(...$canonicalArgs);
+            $canonical = Router::generateUrl('products', [], true);
+        }
 
         if ($canonicalData) {
-            $canonical = Router::generateUrl('products', [], true);
             $canonical = $canonicalHelper->appendFilterUrl($canonical, $filterHelper->filterChpuUrl($canonicalData));
 
             $this->design->assign('canonical', $canonical);

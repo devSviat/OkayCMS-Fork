@@ -107,6 +107,7 @@ return [
             'category_features' => '{%canonical_category_features%}',
             'catalog_other_filter' => '{%canonical_catalog_other_filter%}',
             'catalog_filter_pagination' => '{%canonical_catalog_filter_pagination%}',
+            'all_products_brand' => '{%canonical_all_products_brand%}',
         ],
         'robots' => [
             'catalog_pagination' => '{%robots_catalog_pagination%}',
@@ -115,6 +116,7 @@ return [
             'category_features' => '{%robots_category_features%}',
             'catalog_other_filter' => '{%robots_catalog_other_filter%}',
             'catalog_filter_pagination' => '{%robots_catalog_filter_pagination%}',
+            'all_products_brand' => '{%robots_all_products_brand%}',
         ],
         'filter' => [
             'max_brands_filter_depth' => '{%max_brands_filter_depth%}',
