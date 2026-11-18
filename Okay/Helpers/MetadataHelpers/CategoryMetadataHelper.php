@@ -51,8 +51,11 @@ class CategoryMetadataHelper extends CommonMetadataHelper
         int $currentPageNum = 1,
         array $selectedFilters = [],
         array $metaArray = [],
-        ?string $keyword = null
+        ?string $keyword = null,
+        ?int $metaRobots = null
     ): void {
+        // null — robots обчислюються з $metaArray, як для будь-якої сторінки фільтра.
+        $this->metaRobots      = $metaRobots;
         $this->category        = $category;
         $this->isFilterPage    = $isFilterPage;
         $this->isAllPages      = $isAllPages;

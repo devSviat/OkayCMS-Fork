@@ -25,6 +25,7 @@ class SiteMapHelper
     private $filterHelper;
     private $metaRobotsHelper;
     private $canonicalHelper;
+    private $brandFeatureLandingsHelper;
 
     private $language;
     private $siteMapIndex = 1;
@@ -63,7 +64,8 @@ class SiteMapHelper
         Settings $settings,
         FilterHelper $filterHelper,
         MetaRobotsHelper $metaRobotsHelper,
-        CanonicalHelper $canonicalHelper
+        CanonicalHelper $canonicalHelper,
+        BrandFeatureLandingsHelper $brandFeatureLandingsHelper
     ) {
         $this->entityFactory = $entityFactory;
         $this->response = $response;
@@ -71,6 +73,7 @@ class SiteMapHelper
         $this->filterHelper = $filterHelper;
         $this->metaRobotsHelper = $metaRobotsHelper;
         $this->canonicalHelper = $canonicalHelper;
+        $this->brandFeatureLandingsHelper = $brandFeatureLandingsHelper;
         $this->language = $mainHelper->getCurrentLanguage();
 
         $argv = Request::getArgv();
@@ -303,6 +306,24 @@ class SiteMapHelper
                 $categoryBrand = ExtenderFacade::execute(__METHOD__, $categoryBrand, func_get_args());
                 $this->write($categoryBrand, true);
             }
+        }
+    }
+
+    /**
+     * Посадкові «бренд + значення властивості», які BrandFeatureLandingsHelper відкриває
+     * для індексу. Без позначених властивостей — жодної адреси.
+     */
+    public function writeBrandFeatureLandingsProcedure()
+    {
+        foreach ($this->brandFeatureLandingsHelper->getSitemapLandings() as $landing) {
+            $item = [
+                'url' => $landing->url,
+                'changefreq' => 'weekly',
+                'priority' => '0.5',
+            ];
+
+            $item = ExtenderFacade::execute(__METHOD__, $item, func_get_args());
+            $this->write($item, true);
         }
     }
 

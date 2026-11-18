@@ -148,6 +148,28 @@ class CanonicalHelper
     }
 
     /**
+     * Canonical посадкової «бренд + значення властивості» (BrandFeatureLandingsHelper::isLanding()):
+     * на себе без сортування; сторінка — за canonical_catalog_filter_pagination, як у фільтрів.
+     * Глибина фільтра й правила бренду/властивостей тут не діють.
+     *
+     * @param string|int $page поточна сторінка, може бути all
+     * @param array $featuresFilter ключі — url властивостей
+     * @return array|false
+     */
+    public function getBrandFeatureLandingCanonicalData($page, array $featuresFilter, array $brandsFilter)
+    {
+        $result = ['sort' => null];
+        if ($page == 'all' && $this->pageAllIsOff()) {
+            $result = ['page' => null] + $result;
+        } elseif (!empty($page)) {
+            $pagination = $this->filterPaginationCanonicalData($page, $featuresFilter, $brandsFilter);
+            $result = $pagination === false ? false : $pagination + $result;
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
+    }
+
+    /**
      * @param string|int $page
      * @return array|false
      */
@@ -276,28 +298,7 @@ class CanonicalHelper
         }
 
         if (!empty($page) && (!empty($featuresFilter) || !empty($brandsFilter))) {
-            switch ($this->catalogFilterPagination) {
-                case CANONICAL_WITHOUT_FILTER_FIRST_PAGE:
-                    $result['page'] = null;
-
-                    if (!empty($featuresFilter)) {
-                        // Заполняем массив, где ключи - транслиты свойств, значение null, чтобы удалить эти значения
-                        $result = array_merge($result,
-                            array_fill_keys(array_keys($featuresFilter), null)
-                        );
-                    }
-                    $result['brand'] = null;
-                    break;
-                case CANONICAL_FIRST_PAGE:
-                    $result['page'] = null;
-                    break;
-                case CANONICAL_CURRENT_PAGE:
-                    $result['page'] = $page;
-                    break;
-                case CANONICAL_ABSENT:
-                    return false; // no ExtenderFacade
-            }
-            return $result; // no ExtenderFacade
+            return $this->filterPaginationCanonicalData($page, $featuresFilter, $brandsFilter); // no ExtenderFacade
         }
 
         if (!empty($featuresFilter)) {
@@ -333,11 +334,46 @@ class CanonicalHelper
     }
 
     /**
-     * @param string|int $page текущая страница, может быть all
-     * @param array $otherFilter одномерный массив, содержащий значения ['discounted', 'featured'...]
+     * canonical_catalog_filter_pagination для непорожньої сторінки фільтра за брендом чи властивістю.
+     *
+     * @param string|int $page
      * @return array|false
-     * 
-     * Определение canonical для страниц списков товаров (discounted, all-products, brand)
+     */
+    private function filterPaginationCanonicalData($page, array $featuresFilter, array $brandsFilter)
+    {
+        $result = [];
+
+        switch ($this->catalogFilterPagination) {
+            case CANONICAL_WITHOUT_FILTER_FIRST_PAGE:
+                $result['page'] = null;
+
+                if (!empty($featuresFilter)) {
+                    // Ключі — url властивостей, null прибирає їх з адреси
+                    $result = array_merge($result,
+                        array_fill_keys(array_keys($featuresFilter), null)
+                    );
+                }
+                $result['brand'] = null;
+                break;
+            case CANONICAL_FIRST_PAGE:
+                $result['page'] = null;
+                break;
+            case CANONICAL_CURRENT_PAGE:
+                $result['page'] = $page;
+                break;
+            case CANONICAL_ABSENT:
+                return false; // no ExtenderFacade
+        }
+
+        return $result; // no ExtenderFacade
+    }
+
+    /**
+     * Canonical для сторінок списків товарів (discounted, all-products, brand).
+     *
+     * @param string|int $page поточна сторінка, може бути all
+     * @param array $otherFilter одновимірний масив значень ['discounted', 'featured'...]
+     * @return array|false
      */
     private function getBaseCatalogCanonicalData($page, array $otherFilter)
     {

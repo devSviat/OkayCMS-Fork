@@ -40,6 +40,7 @@ class BackendFeaturesRequest
         $feature->url_in_product     = $this->request->post('url_in_product');
         $feature->visible            = $this->request->post('visible', 'int');
         $feature->to_index_new_value = $this->request->post('to_index_new_value');
+        $feature->index_with_brand   = $this->request->post('index_with_brand', 'int', 0) ? 1 : 0;
         $feature->description        = $this->request->post('description');
         $feature->show_in_product    = $this->request->post('show_in_product', 'int', 0);
 

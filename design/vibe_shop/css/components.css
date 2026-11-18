@@ -11368,3 +11368,43 @@ a.top_admin_bookmark::before {
 .comment__rating {
 	margin-left: 10px;
 }
+
+.vs-landings {
+	margin-top: var(--vs-space-9);
+}
+
+.vs-landings__title {
+	margin-bottom: var(--vs-space-3);
+	color: var(--vs-heading);
+	font-size: var(--vs-text-lg);
+	font-weight: 600;
+}
+
+.vs-landings__list {
+	padding: 0;
+	list-style: none;
+}
+
+.vs-landings__link {
+	text-decoration: none;
+}
+
+.vs-landings__more {
+	margin-top: var(--vs-space-2);
+}
+
+.vs-landings__more[hidden] {
+	display: none;
+}
+
+@media (max-width: 991px) {
+	[data-landings-collapsed] [data-landings-extra] {
+		display: none;
+	}
+}
+
+@media (min-width: 992px) {
+	[data-landings-more] {
+		display: none;
+	}
+}
