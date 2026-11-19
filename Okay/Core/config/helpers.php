@@ -4,6 +4,7 @@
 namespace Okay\Core;
 
 
+use Aura\Sql\ExtendedPdo;
 use Okay\Admin\Helpers\BackendAuthorsHelper;
 use Okay\Admin\Helpers\BackendBlogCategoriesHelper;
 use Okay\Admin\Helpers\BackendBlogHelper;
@@ -13,6 +14,7 @@ use Okay\Admin\Helpers\BackendCommentsHelper;
 use Okay\Admin\Helpers\BackendCouponsHelper;
 use Okay\Admin\Helpers\BackendDeliveriesHelper;
 use Okay\Admin\Helpers\BackendFeaturesValuesHelper;
+use Okay\Admin\Helpers\BackendFeaturesValuesMergeHelper;
 use Okay\Admin\Helpers\BackendFeedbacksHelper;
 use Okay\Admin\Helpers\BackendImportHelper;
 use Okay\Admin\Helpers\BackendMainHelper;
@@ -148,6 +150,16 @@ return [
             new SR(Request::class),
             new SR(Languages::class),
             new SR(Settings::class),
+        ]
+    ],
+    BackendFeaturesValuesMergeHelper::class => [
+        'class' => BackendFeaturesValuesMergeHelper::class,
+        'arguments' => [
+            new SR(EntityFactory::class),
+            new SR(QueryFactory::class),
+            new SR(Database::class),
+            new SR(Languages::class),
+            new SR(ExtendedPdo::class),
         ]
     ],
     BackendSpecialImagesHelper::class => [
