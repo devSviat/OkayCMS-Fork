@@ -10,6 +10,7 @@ use Okay\Admin\Helpers\BackendSettingsHelper;
 use Okay\Core\BackendTranslations;
 use Okay\Core\Phone;
 use Okay\Helpers\BrandFeatureLandingsHelper;
+use Okay\Helpers\MetaRobotsHelper;
 
 class SettingsIndexingAdmin extends IndexAdmin
 {
@@ -67,6 +68,9 @@ class SettingsIndexingAdmin extends IndexAdmin
             $this->settings->set('robots_category_brand', 
                 $this->request->post('robots_category_brand', null, ROBOTS_INDEX_FOLLOW)
             );
+            $this->settings->set('robots_category_brand_min_products',
+                self::categoryBrandMinProducts($this->request->post('robots_category_brand_min_products', 'integer'))
+            );
             $this->settings->set('robots_all_products_brand',
                 self::allowedOrInherit(
                     $this->request->post('robots_all_products_brand', 'integer'),
@@ -107,6 +111,12 @@ class SettingsIndexingAdmin extends IndexAdmin
     private static function allowedOrInherit(int $value, array $allowed): int
     {
         return in_array($value, $allowed, true) ? $value : 0;
+    }
+
+    /** 0 — без мінімуму, як MetaRobotsHelper::getCategoryBrandMinProducts() трактує значення поза межами. */
+    private static function categoryBrandMinProducts(int $value): int
+    {
+        return $value >= 1 && $value <= MetaRobotsHelper::CATEGORY_BRAND_MIN_PRODUCTS_MAX ? $value : 0;
     }
 
     /** 0 — типове значення BrandFeatureLandingsHelper. */

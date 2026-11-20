@@ -177,6 +177,14 @@
                                 <div class="okay_list_row">
                                     <div class="okay_list_boding okay_list_settings_indexing_name">
                                         <div class="mt-h">
+                                            <div class="heading_label">{$btr->settings_indexing_category_brand_min_products|escape}</div>
+                                            <input name="robots_category_brand_min_products" class="form-control" type="text" value="{if $settings->robots_category_brand_min_products > 0}{$settings->robots_category_brand_min_products|escape}{/if}" placeholder="{$btr->settings_indexing_category_brand_min_products_off|escape}" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="okay_list_row">
+                                    <div class="okay_list_boding okay_list_settings_indexing_name">
+                                        <div class="mt-h">
                                             <div class="heading_label">{$btr->settings_indexing_all_products_brand}</div>
                                             <select name="robots_all_products_brand" class="selectpicker form-control col-xs-12 px-0">
                                                 <option value="0" {if !$settings->robots_all_products_brand}selected=""{/if}>{$btr->settings_indexing_all_products_brand_inherit|escape}</option>
