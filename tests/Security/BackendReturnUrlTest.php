@@ -26,19 +26,52 @@ class BackendReturnUrlTest extends TestCase
         return [
             'javascript' => ['javascript:alert(1)'],
             'javascript з пробілом' => [' javascript:alert(1)'],
+            'javascript у змішаному регістрі' => ['JaVaScRiPt:alert(1)'],
+            'javascript з табуляцією' => ["java\tscript:alert(1)"],
+            'javascript закодований' => ['javascript%3Aalert(1)'],
+            'vbscript' => ['vbscript:msgbox(1)'],
             'data' => ['data:text/html,<script>alert(1)</script>'],
             'вихід з атрибута' => ['"><script>alert(1)</script>'],
             'чужий хост' => ['https://evil.example/backend/'],
             'протокол-відносний' => ['//evil.example/'],
+            'протокол-відносний закодований' => ['%2F%2Fevil.example/'],
+            'протокол-відносний закодований двічі' => ['%252F%252Fevil.example/'],
+            'шлях, що декодується в //' => ['/%2Fevil.example/'],
+            'зворотні скісні' => ['\\\\evil.example/'],
+            'скісна і зворотна' => ['/\\evil.example/'],
+            'зворотна закодована' => ['/%5Cevil.example/'],
+            'облікові дані перед чужим хостом' => ['https://shop.example@evil.example/'],
+            'піддомен-пастка' => ['https://shop.example.evil.example/'],
+            'інша схема на свій хост' => ['ftp://shop.example/'],
+            'перенос рядка' => ["/backend/\r\nSet-Cookie: a=b"],
+            'перенос рядка закодований' => ['/backend/%0d%0aSet-Cookie:%20a=b'],
+            'нульовий байт' => ['/backend/%00'],
+            'відносний без скісної' => ['index.php?controller=OrdersAdmin'],
             'масив' => [['/backend/']],
             'порожньо' => [''],
         ];
     }
 
-    public function testOwnUrlsStay(): void
+    #[DataProvider('ownListUrls')]
+    public function testOwnUrlsStay(string $own): void
     {
-        $own = '/backend/index.php?controller=CategoriesAdmin&category_id=4';
         self::assertSame($own, BackendReturnUrl::sanitize($own, self::ROOT));
+    }
+
+    /** Так їх будує {url ... return=$smarty.server.REQUEST_URI} на сторінках списків. */
+    public static function ownListUrls(): array
+    {
+        return [
+            'категорія' => ['/backend/index.php?controller=CategoriesAdmin&category_id=4'],
+            'фільтри й сторінка' => ['/backend/index.php?controller=ProductsAdmin&category_id=3&brand_id=2&filter=visible&page=4'],
+            'пошук кирилицею' => ['/backend/index.php?controller=ProductsAdmin&keyword=%D1%88%D0%B8%D0%BD%D0%B0&page=2'],
+            'масив у query' => ['/backend/index.php?controller=OrdersAdmin&status=1&labels%5B%5D=2&labels%5B%5D=5'],
+            'модульний контролер' => ['/backend/index.php?controller=OkayCMS.Feeds.FeedsAdmin&sort=name_desc'],
+        ];
+    }
+
+    public function testOwnAbsoluteUrlStays(): void
+    {
         self::assertSame(
             'https://shop.example/backend/index.php?controller=OrdersAdmin',
             BackendReturnUrl::sanitize('https://shop.example/backend/index.php?controller=OrdersAdmin', self::ROOT)

@@ -9,7 +9,7 @@
                 {$btr->user_groups_groups|escape} - {$groups|count}
             </div>
             <div class="box_btn_heading">
-                <a class="btn btn_small btn-info" href="index.php?controller=UserGroupAdmin&return={$smarty.server.REQUEST_URI}">
+                <a class="btn btn_small btn-info" href="index.php?controller=UserGroupAdmin&return={$smarty.server.REQUEST_URI|escape:'url'}">
                     {include file='svg_icon.tpl' svgId='plus'}
                     <span>{$btr->user_groups_add|escape}</span>
                 </a>
