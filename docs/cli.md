@@ -25,7 +25,6 @@ cd dev && docker compose exec php85 php ok <команда>
 | `scheduler:list` | показує перелік зареєстрованих задач |
 | `release:build-package` | збирає пакет релізу форку (zip + `manifest.json` + `checksums.txt`) |
 | `manager:2fa-reset <login>` | вимикає менеджеру 2FA й завершує всі його сесії |
-| `features:merge-values --map=<json> [--apply]` | зливає й перейменовує значення властивості за картою; без `--apply` лише план |
 
 ### `database:deploy`
 
@@ -114,17 +113,6 @@ php ok manager:2fa-reset <login>
 
 Код виходу 1 — менеджера з таким логіном немає або 2FA в нього не ввімкнена;
 тоді нічого не змінюється. Докладніше — [UPGRADE-security.md](UPGRADE-security.md#31-двофакторна-автентифікація-менеджерів).
-
-### `features:merge-values`
-
-```bash
-php ok features:merge-values --map=<шлях до JSON> [--apply]
-```
-
-Зливає дублі й синоніми значень однієї властивості та перейменовує значення за JSON-картою.
-Без `--apply` друкує план і нічого не змінює. З `--apply` виконує все в одній транзакції й
-перед комітом звіряє базу з планом; помилка чи розбіжність відкочує все. Формат карти, що
-саме переноситься й що робити після застосування — [feature-values-merge.md](feature-values-merge.md).
 
 ## Своя команда
 
