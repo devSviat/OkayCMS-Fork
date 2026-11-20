@@ -10,13 +10,16 @@ class FAQEntity extends Entity
 {
     protected static $fields = [
         'id',
-        'question',
-        'answer',
         'visible',
         'position',
     ];
 
     protected static $langFields = [
+        'question',
+        'answer',
+    ];
+
+    protected static $searchFields = [
         'question',
         'answer',
     ];
