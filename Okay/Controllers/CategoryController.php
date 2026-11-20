@@ -158,7 +158,8 @@ class CategoryController extends AbstractController
                 $currentPage,
                 $productsFilter['other_filter'] ?? [],
                 $metaArray['features_values'] ?? [],
-                $productsFilter['brand_id'] ?? [])
+                $productsFilter['brand_id'] ?? [],
+                (int)$this->design->getVar('total_products_num'))
             ) {
                 case ROBOTS_NOINDEX_FOLLOW:
                     $this->design->assign('noindex_follow', true);

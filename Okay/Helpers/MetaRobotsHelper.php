@@ -10,6 +10,9 @@ use Okay\Core\Settings;
 
 class MetaRobotsHelper
 {
+    /** Найбільший мінімум товарів бренд-фільтра, який зберігає адмінка; поза межами — 0, перевірку вимкнено. */
+    public const int CATEGORY_BRAND_MIN_PRODUCTS_MAX = 100000;
+
     private $settings;
 
     private $catalogPagination;
@@ -154,14 +157,49 @@ class MetaRobotsHelper
      * @param array $otherFilter одномерный массив, содержащий значения ['discounted', 'featured'...]
      * @param array $featuresFilter
      * @param array $brandsFilter
+     * @param int|null $productsCount товарів у лістингу сторінки; з ним фільтр за одним брендом без інших
+     *                                фільтрів, де товарів менше за getCategoryBrandMinProducts(), отримує
+     *                                щонайменше noindex,follow. null — без цієї перевірки
      * @return int
      * @throws Exception
      *
      * Определение meta robots для категории
      */
-    public function getCatalogRobots($page, array $otherFilter, array $featuresFilter, array $brandsFilter) : int
+    public function getCatalogRobots($page, array $otherFilter, array $featuresFilter, array $brandsFilter, ?int $productsCount = null) : int
     {
-        return $this->catalogRobots($page, $otherFilter, $featuresFilter, $brandsFilter, $this->catalogBrand); // no ExtenderFacade
+        $robots = $this->catalogRobots($page, $otherFilter, $featuresFilter, $brandsFilter, $this->catalogBrand);
+
+        if ($productsCount !== null
+            && count($brandsFilter) === 1
+            && empty($otherFilter)
+            && empty($featuresFilter)
+            && $this->isBelowCategoryBrandMinProducts($productsCount)
+        ) {
+            $robots = max($robots, ROBOTS_NOINDEX_FOLLOW);
+        }
+
+        return $robots; // no ExtenderFacade
+    }
+
+    /**
+     * Мінімум товарів, з якого бренд-фільтр категорії (/catalog/x/brand-y) індексується
+     * й потрапляє в карту сайту. 0 — без мінімуму.
+     */
+    public function getCategoryBrandMinProducts(): int
+    {
+        $value = $this->settings->get('robots_category_brand_min_products');
+        $value = is_numeric($value) && (int)$value >= 1 && (int)$value <= self::CATEGORY_BRAND_MIN_PRODUCTS_MAX
+            ? (int)$value
+            : 0;
+
+        return ExtenderFacade::execute(__METHOD__, $value, func_get_args());
+    }
+
+    public function isBelowCategoryBrandMinProducts(int $productsCount): bool
+    {
+        $result = $productsCount < $this->getCategoryBrandMinProducts();
+
+        return ExtenderFacade::execute(__METHOD__, $result, func_get_args());
     }
 
     /**
