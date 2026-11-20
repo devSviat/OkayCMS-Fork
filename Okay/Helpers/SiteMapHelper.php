@@ -288,7 +288,9 @@ class SiteMapHelper
 
             // getBrands() віддає порожньо, коли бренд у категорії один: такий
             // фільтр показав би саму категорію. Власний запит це загубить.
-            foreach ($this->filterHelper->getBrands($brandsFilter) as $brand) {
+            $brands = $this->filterCategoryBrandsByMinProducts($c, $this->filterHelper->getBrands($brandsFilter));
+
+            foreach ($brands as $brand) {
                 // Без url фільтр випав би з адреси, лишивши дублікат категорії.
                 if (empty($brand->url)) {
                     continue;
@@ -307,6 +309,36 @@ class SiteMapHelper
                 $this->write($categoryBrand, true);
             }
         }
+    }
+
+    /**
+     * Бренди категорії без тих, чий бренд-фільтр має менше товарів, ніж
+     * MetaRobotsHelper::getCategoryBrandMinProducts(): така сторінка віддає noindex.
+     * Товари рахуються одним запитом на категорію з умовами paginate() сторінки
+     * категорії; без порогу запиту немає.
+     *
+     * @param array<int, object> $brands результат FilterHelper::getBrands()
+     * @return array<int, object>
+     */
+    public function filterCategoryBrandsByMinProducts(object $category, array $brands): array
+    {
+        if (!empty($brands) && $this->metaRobotsHelper->getCategoryBrandMinProducts() > 0) {
+            /** @var ProductsEntity $productsEntity */
+            $productsEntity = $this->entityFactory->get(ProductsEntity::class);
+
+            $counts = [];
+            $filter = $this->brandFeatureLandingsHelper->getCountFilter(array_map(intval(...), (array)$category->children));
+            foreach ($productsEntity->countGroupedByBrand($filter) as $row) {
+                $counts[(int)$row->brand_id] = (int)$row->count;
+            }
+
+            $brands = array_filter(
+                $brands,
+                fn(object $brand) => !$this->metaRobotsHelper->isBelowCategoryBrandMinProducts($counts[(int)$brand->id] ?? 0)
+            );
+        }
+
+        return ExtenderFacade::execute(__METHOD__, $brands, func_get_args());
     }
 
     /**
