@@ -62,6 +62,8 @@ Run CLI/PHPUnit inside the PHP container if PHP is not on the host: `cd dev && d
 
 Local env config lives in `dev/.env` (copy from `dev/.env-example`). On container creation the default DB dump `1DB_changes/okay_clean.sql` is loaded and the `admin` manager is (re)created. The database now lives on a named Docker volume — `docker compose down -v` destroys it (no more leftover files under a bind-mounted directory).
 
+Before a commit or PR use skill `verify` (`.claude/skills/verify`): gate checks on a clean tree (the dev stack also mounts okay-lab modules), the app log, both themes in a browser.
+
 Admin panel: `http://<VIRTUAL_HOST>/admin`, login `admin`, password `1234`.
 
 App config: `config/config.php` + `config/config.local.php` (INI format; `dev_mode`, `debug_mode`, `smarty_force_compile` live here). `debug_bar = true` вмикає phpdebugbar на вітрині — лише в парі з `debug_mode = true`; шаблон із поясненням у `config/config.local-example.php`.
