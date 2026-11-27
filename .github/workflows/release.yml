@@ -166,13 +166,33 @@ jobs:
             NOTES_ARGS=(--notes "Перший публічний реліз форку OkayCMS (base: OkayCMS 4.5.2).")
           fi
 
-          # Ідемпотентність: ре-ран після збою завантаження asset'а не має
-          # падати на "release already exists".
-          if gh release view "$TAG" > /dev/null 2>&1; then
+          # Релізи незмінні (release immutability): після публікації asset'и
+          # не замінити. Тому реліз спершу чернетка, asset'и вантажаться в неї,
+          # і лише потім публікація. Збій посередині лишає чернетку, яку
+          # ре-ран дозаливає й публікує.
+          if STATE="$(gh release view "$TAG" --json isDraft,assets \
+                --jq '[.isDraft, ([.assets[].name] | sort | join(" "))] | @tsv' 2>/dev/null)"; then
+            IFS=$'\t' read -r IS_DRAFT PUBLISHED_ASSETS <<< "$STATE"
+            if [[ "$IS_DRAFT" != "true" ]]; then
+              # Зібраний наново архів не байт-у-байт той самий, тож порівнюємо
+              # лише набір імен: повний набір означає, що попередній прогін
+              # реліз уже завершив.
+              EXPECTED_ASSETS="$(for a in "${ASSETS[@]}"; do basename "$a"; done | LC_ALL=C sort | paste -sd' ')"
+              if [[ "$PUBLISHED_ASSETS" == "$EXPECTED_ASSETS" ]]; then
+                echo "::notice::Реліз $TAG уже опубліковано з повним набором asset'ів — нічого робити."
+                exit 0
+              fi
+              echo "::error::Реліз $TAG опубліковано без повного набору asset'ів (є: '${PUBLISHED_ASSETS}', треба: '${EXPECTED_ASSETS}'). Незмінний реліз не виправити — випустіть наступну версію."
+              exit 1
+            fi
             gh release upload "$TAG" --clobber "${ASSETS[@]}"
           else
             gh release create "$TAG" \
+              --draft \
+              --verify-tag \
               --title "OkayCMS Fork v${VERSION}" \
               "${NOTES_ARGS[@]}" \
               "${ASSETS[@]}"
           fi
+          # Монотонність версії перевірено вище, тож реліз — найновіший.
+          gh release edit "$TAG" --draft=false --latest
